@@ -5,7 +5,7 @@
 <script type="text/javascript">
     RED.nodes.registerType('NtripClient', {
         category: 'NTRIP',
-        color: '#DDDDDD',
+        color: '#C0DEED',
         defaults: {
 			description: { value:"" },
             port: { value: 2101, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 65535))) }},
@@ -89,7 +89,7 @@
 <script type="text/javascript">
     RED.nodes.registerType('RtcmDecoder', {
         category: 'NTRIP',
-        color: '#DDDDDD',
+        color: '#C0DEED',
         defaults: {
 			description: { value:"" },
         },
@@ -134,7 +134,7 @@
 <script type="text/javascript">
     RED.nodes.registerType('NmeaDecoder', {
         category: 'NTRIP',
-        color: '#DDDDDD',
+        color: '#C0DEED',
         defaults: {
 			description: { value:"" },
         },
