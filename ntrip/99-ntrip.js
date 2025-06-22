@@ -25,8 +25,17 @@ module.exports = function (RED) {
                 username: node.credentials.username,
                 password: node.credentials.password,
                 interval: config.interval,
-                // TODO: xyz, ... see https://github.com/dxhbiz/ntrip-client/blob/master/lib/client.js
             };
+
+            let x = config.xcoordinate;
+            let y = config.ycoordinate;
+            let z = config.zcoordinate;
+            
+            if (x !== undefined && x !== 0 &&
+                y !== undefined && y !== 0 &&
+                z !== undefined && z !== 0) {
+                options.xyz = [x, y, z];
+            }
 
             const client = new NtripClient(options);
 

@@ -12,6 +12,9 @@
             host: { value:"" },
             mountpoint: { value:"" },
             interval: { value: 1000, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 100000))) }},
+            xcoordinate: { value: 0, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) )) }},
+            ycoordinate: { value: 0, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) )) }},
+            zcoordinate: { value: 0, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) )) }},
         },
         credentials: {
             username: { type: "text" },
@@ -61,6 +64,30 @@
         <label for="node-input-interval"><i class="fa fa-comment"></i> Interval (ms)</label>
         <input type="text" id="node-input-interval" placeholder="The interval in milliseconds or 0">
     </div> 
+
+    
+    <hr align="middle"/>
+
+    <div class="form-row" id="coordinates" style="background: var(--red-ui-tertiary-background)">
+        <label style="width: auto"><i class="fa fa-crosshairs"></i> Optional location (if set a NMEA GGA sentence is sent to the server)</label>
+        
+        <div class="form-row">
+            <label for="node-input-x"> X</label>
+            <input type="text" id="node-input-x" placeholder="The X position or 0 (optional)">
+        </div> 
+
+        <div class="form-row">
+            <label for="node-input-y"> Y</label>
+            <input type="text" id="node-input-y" placeholder="The Y position or 0 (optional)">
+        </div> 
+
+        <div class="form-row">
+            <label for="node-input-z"> Z</label>
+            <input type="text" id="node-input-z" placeholder="The Z position or 0 (optional)">
+        </div> 
+    </div>
+
+    <hr align="middle"/>
 
     <div class="form-row">
         <label for="node-input-description"><i class="fa fa-comment"></i> Description</label>
@@ -173,6 +200,3 @@
     <p>.</p>
     <p><code>msg.payload</code></p>
 </script>
-
-// TODO: ntrip server / caster
-// TODO: rtcm encoder
