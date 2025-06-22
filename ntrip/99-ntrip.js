@@ -96,25 +96,32 @@ module.exports = function (RED) {
             let buffer = msg.payload;
             try
             {
-                let message;
-                let length;
-                [message, length] = RtcmTransport.decode(buffer);     
-                
-                let messageType = message.constructor.name.replace('RtcmMessage', '');
+                do {
+                    let message;
+                    let length;
+                    [message, length] = RtcmTransport.decode(buffer);     
+                    
+                    let messageType = message.constructor.name.replace('RtcmMessage', '');
 
-                let msg = {
-                    payload : {
-                        rtcm : message.messageType,
-                        messageType : messageType,
-                        message : message,
-                        input : buffer,
-                        length : length
+                    let msg = {
+                        payload : {
+                            rtcm : message.messageType,
+                            messageType : messageType,
+                            message : message,
+                            input : buffer,
+                            length : length
+                        }
+                    };
+
+                    node.send([msg, null]);
+                    node.rtcmMessagesReceived++;
+
+                    // find next message in buffer.
+                    buffer = buffer.slice(length);
+                    if(buffer.length == 0){
+                        done = true;
                     }
-                };
-
-                // TODO: slice buffer and iterate.
-                node.send([msg, null]);
-                node.rtcmMessagesReceived++;
+                } while(!done);
             }
             catch(ex)
             {
