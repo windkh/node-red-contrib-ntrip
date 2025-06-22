@@ -1,0 +1,178 @@
+<!-- Created by Karl-Heinz Wind -->
+
+<!-- ------------------------------------------------------------------------------------------ -->
+
+<script type="text/javascript">
+    RED.nodes.registerType('NtripClient', {
+        category: 'NTRIP',
+        color: '#DDDDDD',
+        defaults: {
+			description: { value:"" },
+            port: { value: 2101, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 65535))) }},
+            host: { value:"" },
+            mountpoint: { value:"" },
+            interval: { value: 1000, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 100000))) }},
+        },
+        credentials: {
+            username: { type: "text" },
+            password: { type: "password" },
+        },
+        inputs: 0,
+        outputs: 1,
+        icon: "bridge.png",
+        paletteLabel: "NTRIP Client",
+        label: function () {
+            return this.description || "NTRIP Client";
+        },
+        labelStyle: function() {
+            return this.description?"node_label_italic":"";
+        }
+    });
+
+</script>
+
+<script type="text/x-red" data-template-name="NtripClient">
+
+    <div class="form-row">
+        <label for="node-input-host"><i class="fa fa-tag"></i> NTRIP Server</label>
+        <input type="text" id="node-input-host" placeholder="The hostname or the IP address of the NTRIP server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-port"><i class="fa fa-phone"></i> Port</label>
+        <input type="text" id="node-input-port" placeholder="The network port to open e.g. 2101">
+    </div> 
+
+    <div class="form-row">
+        <label for="node-input-mountpoint"><i class="fa fa-comment"></i> Mountpoint</label>
+        <input type="text" id="node-input-mountpoint" placeholder="The mountpoint of the stream">
+    </div> 
+
+    <div class="form-row">
+        <label for="node-input-username"><i class="fa fa-user"></i> Username</label>
+        <input type="text" id="node-input-username" placeholder="Enter the username here">
+    </div>
+    <div class="form-row">
+        <label for="node-input-password"><i class="fa fa-key"></i> Password</label>
+        <input type="text" id="node-input-password" placeholder="Enter the password here)">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-interval"><i class="fa fa-comment"></i> Interval (ms)</label>
+        <input type="text" id="node-input-interval" placeholder="The interval in milliseconds or 0">
+    </div> 
+
+    <div class="form-row">
+        <label for="node-input-description"><i class="fa fa-comment"></i> Description</label>
+        <input type="text" id="node-input-description" placeholder="The description of the node (optional)">
+    </div> 
+</script>
+
+<script type="text/x-red" data-help-name="NtripClient">
+    <p>A node that connects to a NTRIP server.</p>
+
+    <h3>Configuration</h3>
+
+    <p>Description of the device.</p>
+    
+    <h3>Inputs</h3>
+    <p>.</p>
+    
+    <h3>Outputs</h3>
+    <p>.</p>
+    <p><code>msg.payload</code></p>
+</script>
+
+
+<!-- ------------------------------------------------------------------------------------------ -->
+
+<script type="text/javascript">
+    RED.nodes.registerType('RtcmDecoder', {
+        category: 'NTRIP',
+        color: '#DDDDDD',
+        defaults: {
+			description: { value:"" },
+        },
+        inputs: 1,
+        outputs: 2,
+        icon: "function.png",
+        paletteLabel: "RTCM Decoder",
+        label: function () {
+            return this.description || "RTCM Decoder";
+        },
+        labelStyle: function() {
+            return this.description?"node_label_italic":"";
+        }
+    });
+
+</script>
+
+<script type="text/x-red" data-template-name="RtcmDecoder">
+    <div class="form-row">
+        <label for="node-input-description"><i class="fa fa-comment"></i> Description</label>
+        <input type="text" id="node-input-description" placeholder="The description of the node (optional)">
+    </div>  
+</script>
+
+<script type="text/x-red" data-help-name="RtcmDecoder">
+    <p>A node that decodes RTCM messages.</p>
+
+    <h3>Configuration</h3>
+
+    <p>Description of the device.</p>
+    
+    <h3>Inputs</h3>
+    <p>.</p>
+    
+    <h3>Outputs</h3>
+    <p>.</p>
+    <p><code>msg.payload</code></p>
+</script>
+
+<!-- ------------------------------------------------------------------------------------------ -->
+
+<script type="text/javascript">
+    RED.nodes.registerType('NmeaDecoder', {
+        category: 'NTRIP',
+        color: '#DDDDDD',
+        defaults: {
+			description: { value:"" },
+        },
+        inputs: 1,
+        outputs: 2,
+        icon: "function.png",
+        paletteLabel: "NMEA Decoder",
+        label: function () {
+            return this.description || "NMEA Decoder";
+        },
+        labelStyle: function() {
+            return this.description?"node_label_italic":"";
+        }
+    });
+
+</script>
+
+<script type="text/x-red" data-template-name="NmeaDecoder">
+    <div class="form-row">
+        <label for="node-input-description"><i class="fa fa-comment"></i> Description</label>
+        <input type="text" id="node-input-description" placeholder="The description of the node (optional)">
+    </div>  
+</script>
+
+<script type="text/x-red" data-help-name="NmeaDecoder">
+    <p>A node that decodes NMEA messages.</p>
+
+    <h3>Configuration</h3>
+
+    <p>Description of the device.</p>
+    
+    <h3>Inputs</h3>
+    <p>.</p>
+    
+    <h3>Outputs</h3>
+    <p>.</p>
+    <p><code>msg.payload</code></p>
+</script>
+
+// TODO: ntrip server / caster
+// TODO: rtcm encoder
