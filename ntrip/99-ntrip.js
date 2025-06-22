@@ -89,15 +89,18 @@ module.exports = function (RED) {
             {
                 let message;
                 let length;
-                [message, length] = RtcmTransport.decode(buffer);        
+                [message, length] = RtcmTransport.decode(buffer);     
+                
+                let messageType = message.constructor.name.replace('RtcmMessage', '');
+
                 let msg = {
                     payload : {
-                        messageType : message.messageType,
+                        rtcm : message.messageType,
+                        messageType : messageType,
                         message : message,
-                        info : message.info,
-                    },
-                    length : length,
-                    buffer : buffer,
+                        buffer : buffer,
+                        length : length
+                    }
                 };
 
                 // TODO: slice buffer and iterate.
@@ -147,9 +150,9 @@ module.exports = function (RED) {
                 let msg = {
                     payload : {
                         messageType : messageType,
-                        message : message,
+                        message : message,   
+                        buffer : buffer
                     },
-                    buffer : buffer,
                 };
 
                 node.send([msg, null]);
