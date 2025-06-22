@@ -98,7 +98,7 @@ module.exports = function (RED) {
                         rtcm : message.messageType,
                         messageType : messageType,
                         message : message,
-                        buffer : buffer,
+                        input : buffer,
                         length : length
                     }
                 };
@@ -110,8 +110,10 @@ module.exports = function (RED) {
             catch(ex)
             {
                 let msg = {
-                    payload : ex,
-                    buffer : buffer,
+                    payload : {
+                        error : ex,
+                        input : buffer,
+                    }
                 };
                 node.send([null, msg]);
                 node.invalidMessagesReceived++;
@@ -142,6 +144,10 @@ module.exports = function (RED) {
         this.on('input', function (msg) {
 
             let buffer = msg.payload;
+            if(Buffer.isBuffer(buffer)){
+                buffer = buffer.toString();
+            }
+            
             try
             {
                 let message = NmeaTransport.decode(buffer);   
@@ -151,7 +157,7 @@ module.exports = function (RED) {
                     payload : {
                         messageType : messageType,
                         message : message,   
-                        buffer : buffer
+                        input : buffer
                     },
                 };
 
@@ -161,8 +167,10 @@ module.exports = function (RED) {
             catch(ex)
             {
                 let msg = {
-                    payload : ex,
-                    buffer : buffer,
+                    payload : {
+                        error : ex,
+                        input : buffer,
+                    }
                 };
                 node.send([null, msg]);
                 node.invalidMessagesReceived++;
