@@ -1,8 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.1.2]
+### Fixed readme
+
 ## [0.1.1]
-### MInor tweaks
+### Minor tweaks
 
 ## [0.1.0]
 ### Initial version
