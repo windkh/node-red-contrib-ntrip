@@ -8,6 +8,7 @@
         color: '#C0DEED',
         defaults: {
 			description: { value:"" },
+            mode: { value: "download", required: true },
             port: { value: 2101, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 65535))) }},
             host: { value:"" },
             mountpoint: { value:"" },
@@ -20,7 +21,7 @@
             username: { type: "text" },
             password: { type: "password" },
         },
-        inputs: 0,
+        inputs: 1,
         outputs: 1,
         icon: "bridge.png",
         paletteLabel: "NTRIP Client",
@@ -29,6 +30,21 @@
         },
         labelStyle: function() {
             return this.description?"node_label_italic":"";
+        },
+        oneditprepare: function() {
+            // download or upload
+            var updateMode = function() {
+                var mode = $("#node-input-mode").val();
+                if (mode == "download") {
+                    //$("#coordinates").show();
+                } else if (mode == "upload"){
+                    //$("#coordinates").hide();
+                } else {
+                    //$("#coordinates").hide();
+                }
+            };
+            updateMode();
+            $("#node-input-mode").change(updateMode);
         }
     });
 
@@ -37,9 +53,24 @@
 <script type="text/x-red" data-template-name="NtripClient">
 
     <div class="form-row">
+        <label for="node-input-description"><i class="fa fa-comment"></i> Description</label>
+        <input type="text" id="node-input-description" placeholder="The description of the node (optional)">
+    </div> 
+
+    <div class="form-row">
         <label for="node-input-host"><i class="fa fa-tag"></i> NTRIP Server</label>
         <input type="text" id="node-input-host" placeholder="The hostname or the IP address of the NTRIP server">
     </div>
+
+    <div class="form-row">
+        <label for="node-input-mode"><i class="fa fa-link"></i> Mode</label>
+        <select id="node-input-mode" style="width:70%">
+            <option value="download">Download</option>
+            <option value="upload">Upload</option>
+        </select>
+    </div>
+
+    <hr align="middle"/>
 
     <div class="form-row">
         <label for="node-input-port"><i class="fa fa-phone"></i> Port</label>
@@ -87,12 +118,6 @@
         </div> 
     </div>
 
-    <hr align="middle"/>
-
-    <div class="form-row">
-        <label for="node-input-description"><i class="fa fa-comment"></i> Description</label>
-        <input type="text" id="node-input-description" placeholder="The description of the node (optional)">
-    </div> 
 </script>
 
 <script type="text/x-red" data-help-name="NtripClient">
@@ -103,10 +128,10 @@
     <p>Description of the device.</p>
     
     <h3>Inputs</h3>
-    <p>.</p>
+    <p>Content is directly passed to the ntrip server.</p>
     
     <h3>Outputs</h3>
-    <p>.</p>
+    <p>Messages received from the ntrip server.</p>
     <p><code>msg.payload</code></p>
 </script>
 

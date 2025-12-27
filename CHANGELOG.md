@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.2.0]
+### Refactored nodes: data can be forwarded to NTRIP caster now.
+
 ## [0.1.2]
 ### Fixed readme
 
