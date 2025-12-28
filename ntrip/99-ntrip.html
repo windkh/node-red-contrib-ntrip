@@ -10,6 +10,8 @@
 			description: { value:"" },
             mode: { value: "download", required: true },
             authmode: { value: "legacy", required: true },
+            passthrough: { value: false, required: false },
+           
             port: { value: 2101, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 65535))) }},
             host: { value:"" },
             mountpoint: { value:"" },
@@ -71,14 +73,21 @@
         </select>
     </div>
 
-    <div class="form-row" id="uploadoptions">
-        <label for="node-input-authmode"><i class="fa fa-id-card-o"></i> Authentication Mode</label>
-        <select id="node-input-authmode" style="width:70%">
-            <option value="legacy">Legacy (Plain Text)</option>
-            <option value="hybrid">Legacy (Basic Auth)</option>
-            <option value="ntripv1">NTRIP V1</option>
-            <option value="ntripv2">NTRIP V2</option>
-        </select>
+    <div class="form-row" id="uploadoptions" style="background: var(--red-ui-tertiary-background)">    
+        <div class="form-row">
+            <label for="node-input-authmode"><i class="fa fa-id-card-o"></i> Authentication Mode</label>
+            <select id="node-input-authmode" style="width:70%">
+                <option value="legacy">Legacy (Plain Text)</option>
+                <option value="hybrid">Legacy (Basic Auth)</option>
+                <option value="ntripv1">NTRIP V1</option>
+                <option value="ntripv2">NTRIP V2</option>
+            </select>
+        </div>
+
+        <div class="form-row">
+            <label for="node-input-passthrough"><i class="fa fa-long-arrow-right"></i> Pass through data to output.</label>
+            <input type="checkbox" id="node-input-passthrough" style="display: inline-block; width: auto; vertical-align: top;">
+        </div>
     </div>
 
     <hr align="middle"/>

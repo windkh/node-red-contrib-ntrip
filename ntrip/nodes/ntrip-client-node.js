@@ -15,6 +15,7 @@ module.exports = function (RED) {
         let mountpoint = config.mountpoint;
         let mode = config.mode || 'download';
         let authmode = config.authmode || 'legacy';
+        node.passthrough = config.passthrough || false;
         
         let client;
         if(host !== undefined ) {
@@ -120,7 +121,6 @@ module.exports = function (RED) {
 
             this.on('input', async function (msg) {
                 if (msg.payload) {
-                    
                     node.messagesReceived++;
                     node.status({
                         fill: 'green',
@@ -135,6 +135,10 @@ module.exports = function (RED) {
                         } 
                         else {
                             client.write(data);
+
+                            if(node.passthrough) {
+                                node.send(msg);
+                            }
                         }
                     } catch (error) {
                         node.status({ fill: 'red', shape: 'ring', text: error });
