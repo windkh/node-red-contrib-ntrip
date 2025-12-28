@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.2.1]
+### Added several auth modes for uploading data to the caster.
+
 ## [0.2.0]
 ### Refactored nodes: data can be forwarded to NTRIP caster now.
 

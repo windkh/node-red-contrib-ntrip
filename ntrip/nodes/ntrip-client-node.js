@@ -3,6 +3,7 @@ module.exports = function (RED) {
 
     const NtripClient = require("../lib/ntrip-client.js");
     const NtripServerOkReply = 'ICY 200 OK';
+    const NtripServerNotOkReply = 'ICY 406';
     const NtripServerMissingMountpoint = 'SOURCETABLE 200 OK';
 
     function NtripClientNode(config) {
@@ -12,7 +13,8 @@ module.exports = function (RED) {
         let host = config.host;
         let port = config.port || 2101;
         let mountpoint = config.mountpoint;
-        let mode = config.mode || "download";
+        let mode = config.mode || 'download';
+        let authmode = config.authmode || 'legacy';
         
         let client;
         if(host !== undefined ) {
@@ -43,6 +45,7 @@ module.exports = function (RED) {
             }
             else  if (mode === 'upload') {
                 // Uploaders send RTCM data to a mountpoint so that clients can consume it.
+                options.authmode = authmode;
                 client = NtripClient.createUploader(options);
             }
             else {
@@ -69,6 +72,15 @@ module.exports = function (RED) {
                         shape: 'ring',
                         text: 'NTRIP server connected.',
                     }); 
+                }
+                // check if ICY 406 Not Acceptable
+                else if (response.startsWith(NtripServerNotOkReply)) {
+                    node.status({
+                        fill: 'red',
+                        shape: 'ring',
+                        text: 'NTRIP server rejected connection.',
+                    }); 
+                    node.error('Server rejected connect: ' + response); 
                 } 
                 else if (response.startsWith(NtripServerMissingMountpoint)) {
                     node.status({
@@ -108,6 +120,14 @@ module.exports = function (RED) {
 
             this.on('input', async function (msg) {
                 if (msg.payload) {
+                    
+                    node.messagesReceived++;
+                    node.status({
+                        fill: 'green',
+                        shape: 'ring',
+                        text: 'Messages ' + node.messagesReceived,
+                    });
+
                     try {
                         let data = msg.payload;
                         if (Array.isArray(data)) {
@@ -116,7 +136,6 @@ module.exports = function (RED) {
                         else {
                             client.write(data);
                         }
-
                     } catch (error) {
                         node.status({ fill: 'red', shape: 'ring', text: error });
                         node.error('Failed to write data: ' + error, error);

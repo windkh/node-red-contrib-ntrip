@@ -8,6 +8,7 @@ const net = require('net');
 class NtripClientUploader extends NtripClient {
     constructor(options) {  
         super(options);
+        this.authmode = options.authmode || 'legacy';
     }
 
     _connect() {
@@ -29,20 +30,38 @@ class NtripClientUploader extends NtripClient {
         // on connect event
         this.client.on('connect', () => {
             const mountpoint = this.mountpoint;
+            const userAgent = this.userAgent;
             const username = this.username;
             const password = this.password;
-            
+            const host = this.host;
+            const port = this.port;
+            const authmode = this.authmode;
+            const authorization = Buffer.from(
+                username + ':' + password,
+                'utf8'
+            ).toString('base64');
+        
             let data;
-            if (this.username === '' && this.password === '') {
-                data = `SOURCE ${mountpoint}\r\n\r\n`;
-            }
-            else {
-                const authorization = Buffer.from(
-                    username + ':' + password,
-                    'utf8'
-                ).toString('base64');
-            
-                data = `SOURCE ${mountpoint}\r\nAuthorization: Basic ${authorization}\r\n\r\n`;            
+            switch (authmode) {
+                case 'legacy': // Legacy --> rtk2Go accepts this. 
+                    if (username === '' && password === '') {
+                        data = `SOURCE ${mountpoint}\r\n\r\n`;
+                    }
+                    else {
+                        data = `SOURCE ${password} /${mountpoint}\r\nSource-Agent: NTRIP ${username}\r\n\r\n`;     
+                    }
+                    break;
+                case 'hybrid': // hybrid (legacy + http auth) --> SNIP accepts this.
+                    data = `SOURCE ${mountpoint}\r\nAuthorization: Basic ${authorization}\r\n\r\n`;      
+                    break;
+                case 'ntripv1': // NTRIP V1 POST
+                    data = `POST /${mountpoint} HTTP/1.0\r\nUser-Agent: NTRIP ${userAgent}\r\nAuthorization: Basic ${authorization}\r\nContent-Type: gnss/data\r\n\r\n`;
+                    break;
+                case 'ntripv2': // NTRIP V2 POST
+                    data = `POST /${mountpoint} HTTP/1.1\r\nHost: ${host}:${port}\r\nUser-Agent: NTRIP ${userAgent}\r\nAuthorization: Basic ${authorization}\r\nNtrip-Version: Ntrip/2.0\r\nContent-Type: gnss/data\r\nConnection: keep-alive\r\n\r\n`;
+                    break;
+                default:
+                    throw new Error("Auth mode is not supported " + authmode);
             }
 
             this.client.write(data);

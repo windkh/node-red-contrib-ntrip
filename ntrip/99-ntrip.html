@@ -9,6 +9,7 @@
         defaults: {
 			description: { value:"" },
             mode: { value: "download", required: true },
+            authmode: { value: "legacy", required: true },
             port: { value: 2101, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 65535))) }},
             host: { value:"" },
             mountpoint: { value:"" },
@@ -36,11 +37,11 @@
             var updateMode = function() {
                 var mode = $("#node-input-mode").val();
                 if (mode == "download") {
-                    //$("#coordinates").show();
+                    $("#uploadoptions").hide();
                 } else if (mode == "upload"){
-                    //$("#coordinates").hide();
+                    $("#uploadoptions").show();
                 } else {
-                    //$("#coordinates").hide();
+                    $("#uploadoptions").hide();
                 }
             };
             updateMode();
@@ -67,6 +68,16 @@
         <select id="node-input-mode" style="width:70%">
             <option value="download">Download</option>
             <option value="upload">Upload</option>
+        </select>
+    </div>
+
+    <div class="form-row" id="uploadoptions">
+        <label for="node-input-authmode"><i class="fa fa-id-card-o"></i> Authentication Mode</label>
+        <select id="node-input-authmode" style="width:70%">
+            <option value="legacy">Legacy (Plain Text)</option>
+            <option value="hybrid">Legacy (Basic Auth)</option>
+            <option value="ntripv1">NTRIP V1</option>
+            <option value="ntripv2">NTRIP V2</option>
         </select>
     </div>
 
