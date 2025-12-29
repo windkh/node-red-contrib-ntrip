@@ -10,12 +10,13 @@ module.exports = function (RED) {
         RED.nodes.createNode(this, config);
         let node = this;
         node.messagesReceived = 0;
+        node.passthrough = config.passthrough || false;
+        
         let host = config.host;
         let port = config.port || 2101;
         let mountpoint = config.mountpoint;
         let mode = config.mode || 'download';
         let authmode = config.authmode || 'legacy';
-        node.passthrough = config.passthrough || false;
         
         let client;
         if(host !== undefined ) {
@@ -30,13 +31,11 @@ module.exports = function (RED) {
             };
 
             // Depending on the caster the clients need to provide the location via GGA sentence.
-            let x = config.xcoordinate;
-            let y = config.ycoordinate;
-            let z = config.zcoordinate;
+            let x = parseFloat(config.xcoordinate || 0);
+            let y = parseFloat(config.ycoordinate || 0);
+            let z = parseFloat(config.zcoordinate || 0);
             
-            if (x !== undefined && x !== 0 &&
-                y !== undefined && y !== 0 &&
-                z !== undefined && z !== 0) {
+            if (x !== 0 && y !== 0 && z !== 0) {
                 options.xyz = [x, y, z];
             }
             

@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.2.2]
+### Added documentation - [#3](https://github.com/windkh/node-red-contrib-ntrip/issues/3)
+
 ## [0.2.1]
 ### Added several auth modes for uploading data to the caster.
 ###  added pass through mode - [#10](https://github.com/windkh/node-red-contrib-ntrip/issues/10)

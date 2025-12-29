@@ -27,8 +27,7 @@ module.exports = function (RED) {
                             rtcm : message.messageType,
                             messageType : messageType,
                             message : message,
-                            input : buffer,
-                            length : length
+                            input : buffer
                         }
                     };
 
