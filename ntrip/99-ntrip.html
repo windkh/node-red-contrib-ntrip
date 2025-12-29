@@ -1,7 +1,6 @@
 <!-- Created by Karl-Heinz Wind -->
 
 <!-- ------------------------------------------------------------------------------------------ -->
-
 <script type="text/javascript">
     RED.nodes.registerType('NtripClient', {
         category: 'NTRIP',
@@ -35,9 +34,11 @@
             return this.description?"node_label_italic":"";
         },
         oneditprepare: function() {
+            // let id = this.id;
+
             // download or upload
-            var updateMode = function() {
-                var mode = $("#node-input-mode").val();
+            let updateMode = function() {
+                let mode = $("#node-input-mode").val();
                 if (mode == "download") {
                     $("#uploadoptions").hide();
                 } else if (mode == "upload"){
@@ -48,6 +49,41 @@
             };
             updateMode();
             $("#node-input-mode").change(updateMode);
+
+            // get mountpoints
+            // let getmountpoints = function() {
+            //     let hostname = $("#node-input-host").val();
+            //     if (hostname !== '') {
+            //         let parameters = {
+            //             node : id // pass the node id so that the server can find the credentials
+            //         }
+
+            //         $.getJSON('node-red-contrib-ntrip-getmountpints', parameters, function(data) {
+            //             $('#node-input-mountpointname').empty();
+            //             for (let i = 0; i < data.length; i++) {
+            //                 let mountpoint = data[i];
+            //                 let mountpointname = mountpoint.mountpoint;
+            //                 if (mountpointname !== undefined) {
+            //                     $('#node-input-mountpointname').append('<option value="' + mountpointname + '">' + mountpointname + '</option>');
+            //                 }
+            //             }
+            //         });
+            //     }
+            //     else{
+            //         $("#getmountpointsbuttonresult").text("Please enter a valid hostname and credentials first and deploy before clicking search button.");
+            //     }
+            // }
+
+            // $( '#getmountpointsbutton' ).click( function() {
+            //     getmountpoints();    
+            // });
+
+            // make sure that the mountpoint name is selected
+            // let updateMountpointname = function() {
+            //     let mountpointname = $("#node-input-mountpointname").val();
+            //     $('#node-input-mountpoint').val(mountpointname);
+            // };
+            // $("#node-input-mountpointname").change(updateMountpointname);
         }
     });
 
@@ -63,6 +99,25 @@
     <div class="form-row">
         <label for="node-input-host"><i class="fa fa-tag"></i> NTRIP Server</label>
         <input type="text" id="node-input-host" placeholder="The hostname or the IP address of the NTRIP server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-username"><i class="fa fa-user"></i> Username</label>
+        <input type="text" id="node-input-username" placeholder="Enter the username here">
+    </div>
+    <div class="form-row">
+        <label for="node-input-password"><i class="fa fa-key"></i> Password</label>
+        <input type="text" id="node-input-password" placeholder="Enter the password here)">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-port"><i class="fa fa-phone"></i> Port</label>
+        <input type="text" id="node-input-port" placeholder="The network port to open e.g. 2101">
+    </div> 
+
+    <div class="form-row">
+        <label for="node-input-mountpoint"><i class="fa fa-comment"></i> Mountpoint</label>
+        <input type="text" id="node-input-mountpoint" placeholder="The mountpoint of the stream">
     </div>
 
     <div class="form-row">
@@ -90,27 +145,31 @@
         </div>
     </div>
 
-    <hr align="middle"/>
-
+    <!-- 
     <div class="form-row">
-        <label for="node-input-port"><i class="fa fa-phone"></i> Port</label>
-        <input type="text" id="node-input-port" placeholder="The network port to open e.g. 2101">
-    </div> 
+        <div class="form-row">
+            <label for="node-input-devicetype"><i class="fa fa-search"></i> Mountpoints</label>
+        
+            <button id="getmountpointsbutton" type="button" class="red-ui-button" style="margin-left: 10px;">
+                <i class="fa fa-search"></i>
+            </button>
 
-    <div class="form-row">
-        <label for="node-input-mountpoint"><i class="fa fa-comment"></i> Mountpoint</label>
-        <input type="text" id="node-input-mountpoint" placeholder="The mountpoint of the stream">
-    </div> 
+            <div style="display: inline-block; position: relative; width: calc(80% - 105px); height: 19.1333px;">
+                <div style="position: absolute; left: 0; right: 0;">
+                    <select id="node-input-mountpointname" style="width: 100%">
+                    </select>
+                </div>
+            </div>
+        </div>
 
-    <div class="form-row">
-        <label for="node-input-username"><i class="fa fa-user"></i> Username</label>
-        <input type="text" id="node-input-username" placeholder="Enter the username here">
+        <div class="form-row">    
+            <div class="form-tips" id='getmountpointsbuttonesult' style="width: auto"></div>
+            <div class="form-tips" id='getmountpointsbuttontip' style="width: auto">
+                <b>Tip:</b> You can auto detect the mountpoints. Before clicking the search button deploy the node with username and password.</div>
+        </div>
     </div>
-    <div class="form-row">
-        <label for="node-input-password"><i class="fa fa-key"></i> Password</label>
-        <input type="text" id="node-input-password" placeholder="Enter the password here)">
-    </div>
-    
+    -->
+
     <hr align="middle"/>
 
     <div class="form-row" id="coordinates" style="background: var(--red-ui-tertiary-background)">

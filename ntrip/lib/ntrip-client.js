@@ -100,7 +100,30 @@ function createUploader(options) {
     return new NtripClientUploader(options)
 }
 
+function getMountpoints(options) {
+    return new Promise(function (resolve, reject) {
+        if (options !== undefined ) {
+    
+            const client = new NtripClient(options);
+
+            client.on('error',(err) => {
+                reject(err);
+            });
+
+            client.on('data', (data) => {
+                resolve(data);
+            });
+
+            client.run();
+        }
+        else {
+            resolve([]);
+        }
+    });
+}
+
 module.exports = {
     createDownloader,
-    createUploader
+    createUploader,
+    getMountpoints
 };

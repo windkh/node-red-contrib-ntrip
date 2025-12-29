@@ -12,18 +12,20 @@ module.exports = function (RED) {
         node.messagesReceived = 0;
         node.passthrough = config.passthrough || false;
         
-        let host = config.host;
-        let port = config.port || 2101;
-        let mountpoint = config.mountpoint;
-        let mode = config.mode || 'download';
-        let authmode = config.authmode || 'legacy';
+        node.config = config;
+
+        node.host = config.host;
+        node.port = config.port || 2101;
+        node.mountpoint = config.mountpoint;
+        node.mode = config.mode || 'download';
+        node.authmode = config.authmode || 'legacy';
         
         let client;
-        if(host !== undefined ) {
+        if(node.host !== undefined ) {
 
             let options = {
-                host: host,
-                port: port,
+                host: node.host,
+                port: node.port,
                 mountpoint: mountpoint,
                 username: node.credentials.username,
                 password: node.credentials.password,
@@ -39,13 +41,13 @@ module.exports = function (RED) {
                 options.xyz = [x, y, z];
             }
             
-            if (mode === 'download') {
+            if (node.mode === 'download') {
                 // Clients only consume ntrip data.
                 client = NtripClient.createDownloader(options);
             }
-            else  if (mode === 'upload') {
+            else  if (node.mode === 'upload') {
                 // Uploaders send RTCM data to a mountpoint so that clients can consume it.
-                options.authmode = authmode;
+                options.authmode = node.authmode;
                 client = NtripClient.createUploader(options);
             }
             else {
@@ -153,6 +155,6 @@ module.exports = function (RED) {
             });
         }
     }
-    
+
     return NtripClientNode;
 };
