@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.2.3]
+### Added NMEA encoder node - [#13](https://github.com/windkh/node-red-contrib-ntrip/issues/13)
+
 ## [0.2.2]
 ### Added documentation - [#3](https://github.com/windkh/node-red-contrib-ntrip/issues/3)
 

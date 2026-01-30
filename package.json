@@ -1,6 +1,6 @@
 {
     "name": "node-red-contrib-ntrip",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "description": "Node for ntrip and rtcm handling.",
     "node-red": {
         "version": ">=0.1.0",

@@ -1,7 +1,7 @@
 module.exports = function (RED) {
     'use strict';
 
-    const { NmeaTransport, NmeaMessageUnknown } = require('@gnss/nmea');
+    const { NmeaTransport } = require('@gnss/nmea');
 
     function NmeaDecoderNode(config) {
         RED.nodes.createNode(this, config);
@@ -11,20 +11,20 @@ module.exports = function (RED) {
 
         this.on('input', function (msg) {
 
-            let buffer = msg.payload;
+            let buffer = msg.payload.nmeaMessage ?? msg.payload;
             if(Buffer.isBuffer(buffer)){
-                buffer = buffer.toString();
+                buffer = buffer.toString('utf8');
             }
             
             try
-            {
-                let message = NmeaTransport.decode(buffer);   
-                let messageType = message.constructor.name.replace('NmeaMessage', '').toUpperCase();
+            {   
+                let nmeaMessage = NmeaTransport.decode(buffer);   
+                let messageType = nmeaMessage.constructor.name.replace('NmeaMessage', '').toUpperCase();
 
                 let msg = {
                     payload : {
                         messageType : messageType,
-                        message : message,   
+                        nmeaMessage : nmeaMessage,   
                         input : buffer
                     },
                 };
