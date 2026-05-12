@@ -8,15 +8,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-This package has no build step and no lint config. The test suite uses Mocha + `node-red-node-test-helper`:
+This package has no build step. Linting (ESLint flat config) and formatting (Prettier) are wired in:
 
 ```bash
-npm test                                  # run all specs
-npx mocha test/nmea-decoder.spec.js       # run one file
-npx mocha test/**/*.spec.js -g 'regression'  # run only regression tests
+npm test                                  # run all specs (mocha + node-red-node-test-helper)
+npm run lint                              # eslint, treats warnings as warnings
+npm run lint:fix                          # eslint --fix
+npm run format                            # prettier --write .
+npm run format:check                      # prettier --check . (used in CI)
+
+npx mocha test/nmea-decoder.spec.js       # run one spec file
+npx mocha test/**/*.spec.js -g 'regression'  # run only regression specs
 ```
 
-CI runs `npm ci`, `npm run build --if-present`, and `npm test` across Node 18/20/22 (see [.github/workflows/node.js.yml](.github/workflows/node.js.yml)).
+CI runs `npm ci`, `npm run build --if-present`, `npm run lint`, `npm run format:check`, then `npm test` across Node 18/20/22 (see [.github/workflows/node.js.yml](.github/workflows/node.js.yml)).
+
+Prettier settings live in [.prettierrc.json](.prettierrc.json) (4-space indent, single quotes, trailing-commas-es5, printWidth 160). [.prettierignore](.prettierignore) skips `examples/` (Node-RED flow files), `ntrip/99-ntrip.html` (Node-RED-specific structural conventions), markdown, and `doc/`. ESLint config is [eslint.config.js](eslint.config.js) (flat config, `@eslint/js` recommended + `eslint-config-prettier`).
 
 To exercise changes manually, install this directory into a local Node-RED:
 

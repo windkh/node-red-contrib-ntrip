@@ -28,14 +28,16 @@ describe('RtcmDecoder', function () {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
                 const ok = helper.getNode('ok');
-                ok.on('input', msg => {
+                ok.on('input', (msg) => {
                     try {
                         expect(msg.payload.rtcm).to.equal(1005);
                         expect(msg.payload.messageType).to.be.a('string');
                         expect(msg.payload.message).to.be.an('object');
                         expect(Buffer.isBuffer(msg.payload.input)).to.equal(true);
                         resolve();
-                    } catch (e) { reject(e); }
+                    } catch (e) {
+                        reject(e);
+                    }
                 });
                 n1.receive({ payload: RTCM_1005 });
             });
@@ -43,7 +45,7 @@ describe('RtcmDecoder', function () {
     });
 
     it('decodes two concatenated frames as two separate output messages', function () {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
                 const ok = helper.getNode('ok');
@@ -63,13 +65,15 @@ describe('RtcmDecoder', function () {
                 const n1 = helper.getNode('n1');
                 const ok = helper.getNode('ok');
                 let received = false;
-                ok.on('input', msg => {
+                ok.on('input', (msg) => {
                     if (received) return;
                     received = true;
                     try {
                         expect(msg.payload.rtcm).to.equal(1005);
                         resolve();
-                    } catch (e) { reject(e); }
+                    } catch (e) {
+                        reject(e);
+                    }
                 });
                 const half = Math.floor(RTCM_1005.length / 2);
                 n1.receive({ payload: RTCM_1005.slice(0, half) });
@@ -91,16 +95,20 @@ describe('RtcmDecoder', function () {
                 };
                 // A buffer of garbage larger than the pending-buffer cap triggers the
                 // error-output path. node.error must NOT be called for that.
-                const big = Buffer.alloc(70000, 0xFF);
+                const big = Buffer.alloc(70000, 0xff);
                 let errEmitted = false;
-                err.on('input', () => { errEmitted = true; });
+                err.on('input', () => {
+                    errEmitted = true;
+                });
                 n1.receive({ payload: big });
                 setTimeout(() => {
                     try {
                         expect(errEmitted).to.equal(true);
                         expect(errorCalled).to.equal(false);
                         resolve();
-                    } catch (e) { reject(e); }
+                    } catch (e) {
+                        reject(e);
+                    }
                 }, 200);
             });
         });

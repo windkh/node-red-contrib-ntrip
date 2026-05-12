@@ -44,24 +44,21 @@ module.exports = function (RED) {
             }
             try {
                 return String(value);
-            } catch (e) {
+            } catch {
                 return '';
             }
         }
 
         this.on('input', function (msg) {
-
             let payload = msg.payload;
 
-            if (payload == null ||
-                payload.nmeaMessage == null ||
-                payload.messageType == null) {
+            if (payload == null || payload.nmeaMessage == null || payload.messageType == null) {
                 let errMsg = {
-                    payload : {
-                        error : 'Invalid input. Expected payload with nmeaMessage and messageType properties.',
-                        input : payload,
-                        inputString : safeToString(payload)
-                    }
+                    payload: {
+                        error: 'Invalid input. Expected payload with nmeaMessage and messageType properties.',
+                        input: payload,
+                        inputString: safeToString(payload),
+                    },
                 };
                 node.send([null, errMsg]);
                 node.invalidMessagesReceived++;
@@ -77,8 +74,7 @@ module.exports = function (RED) {
                 let nmeaMessage;
                 if (input instanceof NmeaMessage) {
                     nmeaMessage = input;
-                }
-                else {
+                } else {
                     switch (messageType) {
                         case 'OBJECT':
                             nmeaMessage = NmeaMessageUnknown.construct(input);
@@ -142,24 +138,23 @@ module.exports = function (RED) {
                 let message = NmeaTransport.encode(nmeaMessage);
 
                 let outMsg = {
-                    payload : {
-                        nmeaMessage : message,
-                        messageType : payload.messageType,
-                        input : input
+                    payload: {
+                        nmeaMessage: message,
+                        messageType: payload.messageType,
+                        input: input,
                     },
                 };
 
                 node.send([outMsg, null]);
                 node.nmeaMessagesReceived++;
                 updateStatus(true);
-            }
-            catch(ex) {
+            } catch (ex) {
                 let errMsg = {
-                    payload : {
-                        error : ex,
-                        input : input,
-                        inputString : safeToString(input)
-                    }
+                    payload: {
+                        error: ex,
+                        input: input,
+                        inputString: safeToString(input),
+                    },
                 };
                 node.send([null, errMsg]);
                 node.invalidMessagesReceived++;
@@ -167,7 +162,7 @@ module.exports = function (RED) {
             }
         });
 
-        this.on('close', function(done) {
+        this.on('close', function (done) {
             node.status({});
             done();
         });

@@ -1,7 +1,7 @@
 module.exports = function (RED) {
     'use strict';
 
-    const NtripClient = require("../lib/ntrip-client.js");
+    const NtripClient = require('../lib/ntrip-client.js');
     const NtripServerOkReply = 'ICY 200 OK';
     const NtripServerNotOkReply = 'ICY 406';
     const NtripServerMissingMountpoint = 'SOURCETABLE 200 OK';
@@ -40,16 +40,14 @@ module.exports = function (RED) {
         let y = parseFloat(config.ycoordinate);
         let z = parseFloat(config.zcoordinate);
 
-        if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)
-            && !(x === 0 && y === 0 && z === 0)) {
+        if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z) && !(x === 0 && y === 0 && z === 0)) {
             options.xyz = [x, y, z];
         }
 
         let client;
         if (mode === 'download') {
             client = NtripClient.createDownloader(options);
-        }
-        else if (mode === 'upload') {
+        } else if (mode === 'upload') {
             options.authmode = authmode;
             try {
                 client = NtripClient.createUploader(options);
@@ -58,8 +56,7 @@ module.exports = function (RED) {
                 node.error('Failed to create uploader: ' + (error.message || error));
                 return;
             }
-        }
-        else {
+        } else {
             node.status({ fill: 'red', shape: 'ring', text: 'Unsupported mode: ' + mode });
             node.error('Mode not supported: ' + mode);
             return;
@@ -125,7 +122,7 @@ module.exports = function (RED) {
                     node.error('Error: ' + e.message);
                 });
             } else {
-                let text = (error && error.message) ? error.message : String(error);
+                let text = error && error.message ? error.message : String(error);
                 node.log(text);
                 node.error('Error: ' + text);
             }
@@ -150,8 +147,7 @@ module.exports = function (RED) {
             try {
                 if (Array.isArray(payload)) {
                     client.setXYZ(payload);
-                }
-                else {
+                } else {
                     client.write(payload);
                     node.messagesSent++;
                     if (node.passthrough) {
@@ -160,17 +156,17 @@ module.exports = function (RED) {
                     updateStatus();
                 }
             } catch (error) {
-                let text = (error && error.message) ? error.message : String(error);
+                let text = error && error.message ? error.message : String(error);
                 node.status({ fill: 'red', shape: 'ring', text: text });
                 node.error('Failed to write data: ' + text, msg);
             }
         });
 
-        this.on('close', function(done) {
+        this.on('close', function (done) {
             try {
                 client.removeAllListeners();
                 client.close();
-            } catch (e) {
+            } catch {
                 // ignore — node is shutting down anyway
             }
             node.status({});

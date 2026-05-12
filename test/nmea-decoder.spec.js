@@ -27,13 +27,15 @@ describe('NmeaDecoder', function () {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
                 const ok = helper.getNode('ok');
-                ok.on('input', msg => {
+                ok.on('input', (msg) => {
                     try {
                         expect(msg.payload.messageType).to.equal('GGA');
                         expect(msg.payload.nmeaMessage).to.have.property('latitude');
                         expect(msg.payload.input).to.equal(GGA);
                         resolve();
-                    } catch (e) { reject(e); }
+                    } catch (e) {
+                        reject(e);
+                    }
                 });
                 n1.receive({ payload: GGA });
             });
@@ -46,13 +48,15 @@ describe('NmeaDecoder', function () {
                 const n1 = helper.getNode('n1');
                 const ok = helper.getNode('ok');
                 const types = [];
-                ok.on('input', msg => {
+                ok.on('input', (msg) => {
                     types.push(msg.payload.messageType);
                     if (types.length === 2) {
                         try {
                             expect(types).to.deep.equal(['GGA', 'GLL']);
                             resolve();
-                        } catch (e) { reject(e); }
+                        } catch (e) {
+                            reject(e);
+                        }
                     }
                 });
                 n1.receive({ payload: GGA + '\r\n' + GLL + '\r\n' });
@@ -65,11 +69,13 @@ describe('NmeaDecoder', function () {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
                 const ok = helper.getNode('ok');
-                ok.on('input', msg => {
+                ok.on('input', (msg) => {
                     try {
                         expect(msg.payload.messageType).to.equal('GGA');
                         resolve();
-                    } catch (e) { reject(e); }
+                    } catch (e) {
+                        reject(e);
+                    }
                 });
                 n1.receive({ payload: Buffer.from(GGA, 'utf8') });
             });
@@ -81,11 +87,13 @@ describe('NmeaDecoder', function () {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
                 const ok = helper.getNode('ok');
-                ok.on('input', msg => {
+                ok.on('input', (msg) => {
                     try {
                         expect(msg.payload.messageType).to.equal('GGA');
                         resolve();
-                    } catch (e) { reject(e); }
+                    } catch (e) {
+                        reject(e);
+                    }
                 });
                 n1.receive({ payload: { nmeaMessage: GGA } });
             });
@@ -97,14 +105,16 @@ describe('NmeaDecoder', function () {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
                 const err = helper.getNode('err');
-                const garbage = Buffer.from([0xD3, 0x00, 0x13, 0x3E, 0xD0, 0x00]);
-                err.on('input', msg => {
+                const garbage = Buffer.from([0xd3, 0x00, 0x13, 0x3e, 0xd0, 0x00]);
+                err.on('input', (msg) => {
                     try {
                         expect(Buffer.isBuffer(msg.payload.input)).to.equal(true);
                         expect(msg.payload.input).to.deep.equal(garbage);
                         expect(msg.payload.inputString).to.be.a('string');
                         resolve();
-                    } catch (e) { reject(e); }
+                    } catch (e) {
+                        reject(e);
+                    }
                 });
                 n1.receive({ payload: garbage });
             });
@@ -121,12 +131,14 @@ describe('NmeaDecoder', function () {
                     errorCalled = true;
                     return originalError(...args);
                 };
-                n1.receive({ payload: Buffer.from([0xD3, 0x00, 0x13, 0x3E]) });
+                n1.receive({ payload: Buffer.from([0xd3, 0x00, 0x13, 0x3e]) });
                 setTimeout(() => {
                     try {
                         expect(errorCalled).to.equal(false);
                         resolve();
-                    } catch (e) { reject(e); }
+                    } catch (e) {
+                        reject(e);
+                    }
                 }, 50);
             });
         });

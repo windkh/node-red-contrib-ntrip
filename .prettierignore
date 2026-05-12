@@ -1,0 +1,16 @@
+# Generated / vendored
+node_modules/
+package-lock.json
+
+# Node-RED flow files — re-formatting would change diff noise without value
+examples/
+
+# Editor UI HTML has Node-RED-specific structural conventions
+# (data-template-name script blocks, x-red script blocks) that Prettier
+# can mangle. Touch only with care.
+ntrip/99-ntrip.html
+
+# Markdown is kept hand-formatted (line-wrapped prose, ASCII diagrams).
+# Re-flowing it would produce a large noisy diff.
+*.md
+doc/

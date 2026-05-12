@@ -22,22 +22,28 @@ module.exports = function (RED) {
                 let nmeaMessage = NmeaTransport.decode(sentence);
                 let messageType = nmeaMessage.constructor.name.replace('NmeaMessage', '').toUpperCase();
 
-                node.send([{
-                    payload: {
-                        messageType: messageType,
-                        nmeaMessage: nmeaMessage,
-                        input: sentence
-                    }
-                }, null]);
+                node.send([
+                    {
+                        payload: {
+                            messageType: messageType,
+                            nmeaMessage: nmeaMessage,
+                            input: sentence,
+                        },
+                    },
+                    null,
+                ]);
                 node.nmeaMessagesReceived++;
             } catch (ex) {
-                node.send([null, {
-                    payload: {
-                        error: ex,
-                        input: rawInput,
-                        inputString: rawString
-                    }
-                }]);
+                node.send([
+                    null,
+                    {
+                        payload: {
+                            error: ex,
+                            input: rawInput,
+                            inputString: rawString,
+                        },
+                    },
+                ]);
                 node.invalidMessagesReceived++;
             }
         }
@@ -49,9 +55,7 @@ module.exports = function (RED) {
 
             // rawInput is the value the user provided (Buffer, string, ...).
             // Keep it untouched so the error output can return it as-is.
-            let rawInput = (typeof msg.payload === 'object' && msg.payload.nmeaMessage !== undefined)
-                ? msg.payload.nmeaMessage
-                : msg.payload;
+            let rawInput = typeof msg.payload === 'object' && msg.payload.nmeaMessage !== undefined ? msg.payload.nmeaMessage : msg.payload;
 
             let rawString;
             if (Buffer.isBuffer(rawInput)) {
@@ -59,13 +63,16 @@ module.exports = function (RED) {
             } else if (typeof rawInput === 'string') {
                 rawString = rawInput;
             } else {
-                node.send([null, {
-                    payload: {
-                        error: 'Payload is neither string nor Buffer',
-                        input: rawInput,
-                        inputString: String(rawInput)
-                    }
-                }]);
+                node.send([
+                    null,
+                    {
+                        payload: {
+                            error: 'Payload is neither string nor Buffer',
+                            input: rawInput,
+                            inputString: String(rawInput),
+                        },
+                    },
+                ]);
                 node.invalidMessagesReceived++;
                 updateStatus();
                 return;
@@ -88,7 +95,7 @@ module.exports = function (RED) {
             }
         });
 
-        this.on('close', function(done) {
+        this.on('close', function (done) {
             node.status({});
             done();
         });

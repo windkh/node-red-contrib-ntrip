@@ -25,7 +25,11 @@
     "author": "Karl-Heinz Wind",
     "license": "MIT",
     "scripts": {
-        "test": "mocha test/**/*.spec.js --timeout 5000"
+        "test": "mocha test/**/*.spec.js --timeout 5000",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
     },
     "dependencies": {
         "@gnss/nmea": "^0.1.2",
@@ -33,9 +37,14 @@
         "ntrip-client": "^1.1.1"
     },
     "devDependencies": {
+        "@eslint/js": "^10.0.1",
         "chai": "^4.5.0",
+        "eslint": "^10.3.0",
+        "eslint-config-prettier": "^10.1.8",
+        "globals": "^17.6.0",
         "mocha": "^11.7.5",
         "node-red": "^4.1.10",
-        "node-red-node-test-helper": "^0.3.6"
+        "node-red-node-test-helper": "^0.3.6",
+        "prettier": "^3.8.3"
     }
 }

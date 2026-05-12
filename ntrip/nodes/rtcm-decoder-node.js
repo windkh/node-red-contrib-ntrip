@@ -28,9 +28,7 @@ module.exports = function (RED) {
             }
 
             let chunk = Buffer.isBuffer(msg.payload) ? msg.payload : Buffer.from(msg.payload);
-            let buffer = node.pendingBuffer.length > 0
-                ? Buffer.concat([node.pendingBuffer, chunk])
-                : chunk;
+            let buffer = node.pendingBuffer.length > 0 ? Buffer.concat([node.pendingBuffer, chunk]) : chunk;
 
             while (buffer.length > 0) {
                 let message;
@@ -46,8 +44,8 @@ module.exports = function (RED) {
                             payload: {
                                 error: ex,
                                 input: buffer,
-                                inputString: buffer.toString()
-                            }
+                                inputString: buffer.toString(),
+                            },
                         };
                         node.send([null, errMsg]);
                         node.invalidMessagesReceived++;
@@ -68,8 +66,8 @@ module.exports = function (RED) {
                         rtcm: message.messageType,
                         messageType: messageType,
                         message: message,
-                        input: buffer.slice(0, length)
-                    }
+                        input: buffer.slice(0, length),
+                    },
                 };
                 node.send([outMsg, null]);
                 node.rtcmMessagesReceived++;
@@ -80,7 +78,7 @@ module.exports = function (RED) {
             updateStatus();
         });
 
-        this.on('close', function(done) {
+        this.on('close', function (done) {
             node.pendingBuffer = Buffer.alloc(0);
             node.status({});
             done();

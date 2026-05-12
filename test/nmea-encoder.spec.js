@@ -2,7 +2,7 @@
 
 const helper = require('node-red-node-test-helper');
 const { expect } = require('chai');
-const { NmeaTransport, NmeaMessageGga } = require('@gnss/nmea');
+const { NmeaTransport } = require('@gnss/nmea');
 const ntripModule = require('../ntrip/99-ntrip.js');
 
 helper.init(require.resolve('node-red'));
@@ -28,13 +28,15 @@ describe('NmeaEncoder', function () {
                 const n1 = helper.getNode('n1');
                 const ok = helper.getNode('ok');
                 const instance = NmeaTransport.decode(GGA);
-                ok.on('input', msg => {
+                ok.on('input', (msg) => {
                     try {
                         expect(msg.payload.nmeaMessage).to.be.a('string');
                         expect(msg.payload.nmeaMessage).to.match(/^\$.+\*[0-9A-Fa-f]{2}\r?\n?$/);
                         expect(msg.payload.nmeaMessage).to.include('GGA');
                         resolve();
-                    } catch (e) { reject(e); }
+                    } catch (e) {
+                        reject(e);
+                    }
                 });
                 // Even with a bogus messageType, an instance must take precedence and
                 // flow straight through to NmeaTransport.encode without re-construction.
@@ -50,12 +52,14 @@ describe('NmeaEncoder', function () {
                 const ok = helper.getNode('ok');
                 const err = helper.getNode('err');
                 ok.on('input', () => reject(new Error('unexpected success output')));
-                err.on('input', msg => {
+                err.on('input', (msg) => {
                     try {
                         expect(msg.payload.error).to.exist;
                         expect(String(msg.payload.error).toLowerCase()).to.include('unsupported');
                         resolve();
-                    } catch (e) { reject(e); }
+                    } catch (e) {
+                        reject(e);
+                    }
                 });
                 n1.receive({ payload: { messageType: 'XYZ', nmeaMessage: { foo: 1 } } });
             });
@@ -67,11 +71,13 @@ describe('NmeaEncoder', function () {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
                 const err = helper.getNode('err');
-                err.on('input', msg => {
+                err.on('input', (msg) => {
                     try {
                         expect(msg.payload.error).to.exist;
                         resolve();
-                    } catch (e) { reject(e); }
+                    } catch (e) {
+                        reject(e);
+                    }
                 });
                 n1.receive({ payload: { messageType: 'GGA' } });
             });
@@ -83,11 +89,13 @@ describe('NmeaEncoder', function () {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
                 const err = helper.getNode('err');
-                err.on('input', msg => {
+                err.on('input', (msg) => {
                     try {
                         expect(msg.payload.error).to.exist;
                         resolve();
-                    } catch (e) { reject(e); }
+                    } catch (e) {
+                        reject(e);
+                    }
                 });
                 n1.receive({ payload: {} });
             });
