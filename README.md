@@ -30,6 +30,10 @@ Or run the following command in the root directory of your Node-RED installation
 
     npm install node-red-contrib-ntrip --save
 
+# Requirements
+- Node.js **>= 18.0.0** (uses `AggregateError` and other recent runtime features).
+- Node-RED **>= 0.1.0**.
+
 # Dependencies
 This package depends on the following libraries
 - [@gnss/nmea](https://github.com/node-ntrip/nmea)
@@ -93,57 +97,180 @@ You need to provide these additional properties:
 
 ### Authentication Modes
 #### Legacy
-This mode initiates the uploading to a mountpoint using plan text.
+This mode initiates the upload to a mountpoint using plain text.
 ```javascript
 SOURCE ${mountpoint}\r\n\r\n
 ```
-or with password and unsername
+or with password and username
 ```javascript
 SOURCE ${password} /${mountpoint}\r\nSource-Agent: NTRIP ${username}\r\n\r\n
 ```
 
 #### Legacy (Basic Auth)
-This hybrid mode initiates the uploading to a mountpoint using plan text and Basic Auth.
+This hybrid mode initiates the upload to a mountpoint using plain text and Basic Auth.
 ```javascript
 SOURCE ${mountpoint}\r\nAuthorization: Basic ${authorization}\r\n\r\n
 ```
 
 #### NTRIP V1
-This mode initiates the uploading to a mountpoint using HTTP with Basic Auth.
+This mode initiates the upload to a mountpoint using HTTP with Basic Auth.
 ```javascript
 POST /${mountpoint} HTTP/1.0\r\nUser-Agent: NTRIP ${userAgent}\r\nAuthorization: Basic ${authorization}\r\nContent-Type: gnss/data\r\n\r\n
 ```
 
 #### NTRIP V2
-THis mode is equal to NTRIP V1 with some more data.
+This mode is equal to NTRIP V1 with some more data.
 ```javascript
 POST /${mountpoint} HTTP/1.1\r\nHost: ${host}:${port}\r\nUser-Agent: NTRIP ${userAgent}\r\nAuthorization: Basic ${authorization}\r\nNtrip-Version: Ntrip/2.0\r\nContent-Type: gnss/data\r\nConnection: keep-alive\r\n\r\n
 ```
 
 # RTCM Decoder Node
-This node accepts binary RTCM data. The node accepts either a single or multiple RTCN messages.
-The converted messages are sent one by one to the output in the following format.
+This node accepts binary RTCM data. A single input message may contain a single
+RTCM frame or several concatenated frames; each decoded frame is emitted as its
+own output message. Bytes left over from a partial frame at the end of an input
+chunk are buffered internally and joined with the next chunk, so frames that
+straddle TCP packet boundaries are reassembled correctly.
+
+The node has **two outputs**: decoded frames go to the first output, decode
+failures to the second.
+
+Successful output:
 ```javascript
-msg.payload = 
+msg.payload =
 {
-    rtcm, // RTCm message number
-    messageType, // a string indicating a readyble RTCM message name
-    message, // a structure containing all decoded data
-    input, // the raw input message
+    rtcm,         // RTCM message number (e.g. 1005, 1077)
+    messageType,  // a readable name (e.g. "Stationary", "Msm7Gps")
+    message,      // the decoded message object with all fields
+    input,        // the raw bytes of this frame
+};
+```
+
+Error output:
+```javascript
+msg.payload =
+{
+    error,        // the Error thrown by the decoder
+    input,        // the buffer at the point of failure
+    inputString,  // String(input) for logging
 };
 ```
 
 # NMEA Decoder Node
-This node accepts binary NMEA data. The node accepts either a single or multiple NMEA messages.
-The converted messages are sent one by one to the output in the following format.
+This node accepts NMEA 0183 sentences as a string or `Buffer`. Multiple
+sentences in a single input (delimited by `\r\n`) are split and decoded
+individually; each decoded sentence is emitted as its own output message.
+
+The node has **two outputs**: decoded sentences go to the first, failures to
+the second.
+
+Successful output:
 ```javascript
-msg.payload = 
+msg.payload =
 {
-    messageType, // a string indicating a readyble RTCM message name
-    message, // a structure containing all decoded data
-    input, // the raw input message
+    messageType,  // sentence type in upper case (e.g. "GGA", "RMC", "GSV")
+    nmeaMessage,  // the decoded sentence object with all fields
+    input,        // the raw sentence as it was parsed
 };
 ```
+
+Error output:
+```javascript
+msg.payload =
+{
+    error,        // the Error thrown by the decoder
+    input,        // the original payload as supplied (Buffer if a Buffer was given)
+    inputString,  // the utf8 string form of input
+};
+```
+
+Errors are routed to the second output only — the node does not call
+`node.error()` for per-sentence decode failures, so wiring binary RTCM through
+the NMEA decoder (as the demo flow does) will not flood the Node-RED log.
+
+# NMEA Encoder Node
+This node is the inverse of the NMEA Decoder. It encodes a NMEA sentence object
+back to its textual form using `@gnss/nmea`. Useful for round-tripping or for
+synthesising sentences (e.g. building a `GGA` fix to feed into an NTRIP
+uploader).
+
+The node has **two outputs**: encoded sentences go to the first, failures to
+the second.
+
+Input shape:
+```javascript
+msg.payload =
+{
+    messageType, // "GGA", "RMC", "VTG", ... (case-insensitive)
+    nmeaMessage, // either a plain field object matching the sentence schema,
+                 // or an already-constructed NmeaMessage instance
+};
+```
+
+Supported `messageType` values: `DTM`, `GBS`, `GGA`, `GLL`, `GNS`, `GRS`,
+`GSA`, `GST`, `GSV`, `RMC`, `THS`, `TXT`, `VHW`, `VLW`, `VPW`, `VTG`, `ZDA`,
+plus `OBJECT` for the generic `NmeaMessageUnknown` form.
+
+Successful output:
+```javascript
+msg.payload =
+{
+    nmeaMessage,  // the encoded NMEA sentence string (with $ prefix and checksum)
+    messageType,  // echoed back as supplied
+    input,        // the original input object
+};
+```
+
+Unknown `messageType` values, missing input fields, and encoder exceptions all
+surface on the error output.
+
+See also example flow [**NMEA encode flow**](examples/nmea-encode.json).
+
+# Notes on usage
+
+A few things that are easy to get wrong:
+
+- **Two outputs on the decoders and the encoder.** The first output carries
+  successful messages, the second carries decode/encode failures. If you only
+  wire the first output you will silently drop errors.
+- **NTRIP Client: handshake handling.** On the first reply from a caster the
+  node intercepts the `ICY 200 OK`, `ICY 406`, or `SOURCETABLE 200 OK` line and
+  uses it to set its status badge (`connecting…` → connected / rejected /
+  missing mountpoint). RTCM bytes that happen to share the same TCP segment as
+  the `ICY 200 OK` reply are forwarded; later packets are forwarded verbatim.
+- **NTRIP Client: coordinates.** The `X`/`Y`/`Z` form fields are an ECEF
+  coordinate triple used to synthesise a `GGA` sentence for the caster. The
+  node only sends a `GGA` if the triple is finite **and not all zero** — so
+  `(0, 0, 0)` is the sentinel for "no location, do not send GGA". Coordinates
+  on a single axis (e.g. `(x, 0, 0)`) are still sent.
+- **NTRIP Client: dynamic location updates.** To stream a moving position into
+  the caster, inject `msg.payload = [x, y, z]` (an Array, not a Buffer) into
+  the NTRIP Client. Arrays are routed to `client.setXYZ()` and update the
+  position used by the periodic `GGA`; non-array payloads are written verbatim
+  to the caster.
+- **NTRIP Client: upload pass-through.** With *Pass through data* enabled the
+  bytes written to the caster are *also* re-emitted on the node output,
+  interleaved with bytes received from the caster. Downstream nodes will see
+  both streams on the same wire — distinguish them with a tag in a function
+  node if you need to.
+- **NTRIP Client: status badge.** `Rx N Tx M` counts inbound and outbound
+  messages separately. Handshake replies do not bump the inbound count.
+- **NTRIP Client: CR/LF in credentials.** `mountpoint`, `username`, and
+  `password` are interpolated into the handshake string. CR/LF in these fields
+  is rejected at startup to prevent header injection.
+- **NMEA Encoder input shape.** The encoder expects `msg.payload` to be an
+  object with `messageType` and `nmeaMessage` properties — not a NMEA string.
+  To re-encode the output of the NMEA Decoder you can pipe it straight in;
+  to build a sentence from scratch use a function node:
+  ```javascript
+  msg.payload = {
+      messageType: "GGA",
+      nmeaMessage: { /* GGA field object */ }
+  };
+  return msg;
+  ```
+- **Plaintext transport.** NTRIP traffic is unencrypted TCP. Credentials in
+  upload mode use Basic Auth and are observable on the wire. NTRIP-over-TLS
+  is not supported by this package.
 
 # Examples 
 Examples are stored in the examples folder an can be imported from within node-red's sidebar via import.

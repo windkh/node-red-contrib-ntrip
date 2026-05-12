@@ -17,7 +17,7 @@ module.exports = function (RED) {
             });
         }
 
-        function decodeOne(sentence, originalMsg) {
+        function decodeOne(sentence, rawInput, rawString) {
             try {
                 let nmeaMessage = NmeaTransport.decode(sentence);
                 let messageType = nmeaMessage.constructor.name.replace('NmeaMessage', '').toUpperCase();
@@ -34,11 +34,10 @@ module.exports = function (RED) {
                 node.send([null, {
                     payload: {
                         error: ex,
-                        input: sentence,
-                        inputString: String(sentence)
+                        input: rawInput,
+                        inputString: rawString
                     }
                 }]);
-                node.error(ex, originalMsg);
                 node.invalidMessagesReceived++;
             }
         }
@@ -48,19 +47,23 @@ module.exports = function (RED) {
                 return;
             }
 
-            let raw = (typeof msg.payload === 'object' && msg.payload.nmeaMessage !== undefined)
+            // rawInput is the value the user provided (Buffer, string, ...).
+            // Keep it untouched so the error output can return it as-is.
+            let rawInput = (typeof msg.payload === 'object' && msg.payload.nmeaMessage !== undefined)
                 ? msg.payload.nmeaMessage
                 : msg.payload;
 
-            if (Buffer.isBuffer(raw)) {
-                raw = raw.toString('utf8');
-            }
-            if (typeof raw !== 'string') {
+            let rawString;
+            if (Buffer.isBuffer(rawInput)) {
+                rawString = rawInput.toString('utf8');
+            } else if (typeof rawInput === 'string') {
+                rawString = rawInput;
+            } else {
                 node.send([null, {
                     payload: {
                         error: 'Payload is neither string nor Buffer',
-                        input: raw,
-                        inputString: String(raw)
+                        input: rawInput,
+                        inputString: String(rawInput)
                     }
                 }]);
                 node.invalidMessagesReceived++;
@@ -69,14 +72,14 @@ module.exports = function (RED) {
             }
 
             // A single chunk may carry several sentences delimited by \r\n.
-            let sentences = raw.split(/\r?\n/);
+            let sentences = rawString.split(/\r?\n/);
             let any = false;
             for (let i = 0; i < sentences.length; i++) {
                 let s = sentences[i].trim();
                 if (s.length === 0) {
                     continue;
                 }
-                decodeOne(s, msg);
+                decodeOne(s, rawInput, rawString);
                 any = true;
             }
 

@@ -140,18 +140,83 @@
 </script>
 
 <script type="text/x-red" data-help-name="NtripClient">
-    <p>A node that connects to a NTRIP server.</p>
+    <p>Connects to an NTRIP caster as either a client (download) or a server (upload).
+       In download mode the node emits the bytes received from the caster (typically
+       RTCM correction data). In upload mode the node forwards bytes from its input
+       to the caster on the configured mountpoint.</p>
 
     <h3>Configuration</h3>
+    <dl class="message-properties">
+        <dt>Host <span class="property-type">string</span></dt>
+        <dd>Hostname or IP address of the NTRIP caster (e.g. <code>rtk2go.com</code>).</dd>
 
-    <p>Description of the device.</p>
-    
+        <dt>Port <span class="property-type">number</span></dt>
+        <dd>TCP port of the caster. Defaults to <code>2101</code>.</dd>
+
+        <dt>Mountpoint <span class="property-type">string</span></dt>
+        <dd>The stream name on the caster. Enter the name without a leading slash.</dd>
+
+        <dt>Mode <span class="property-type">"download" | "upload"</span></dt>
+        <dd><b>Download</b>: receive correction data from the caster.<br>
+            <b>Upload</b>: push correction data to a mountpoint on the caster.</dd>
+
+        <dt>Authentication Mode <span class="property-type">string</span></dt>
+        <dd>Upload only. Selects the handshake the caster expects:
+            <ul>
+                <li><b>Legacy (Plain Text)</b> — <code>SOURCE</code> with no auth header, accepted by rtk2go.</li>
+                <li><b>Legacy (Basic Auth)</b> — <code>SOURCE</code> plus an <code>Authorization: Basic</code> header, accepted by SNIP.</li>
+                <li><b>NTRIP V1</b> — <code>POST</code> over HTTP/1.0 with Basic Auth.</li>
+                <li><b>NTRIP V2</b> — <code>POST</code> over HTTP/1.1 with Basic Auth and <code>Ntrip-Version: Ntrip/2.0</code>.</li>
+            </ul>
+        </dd>
+
+        <dt>Pass through data <span class="property-type">boolean</span></dt>
+        <dd>Upload only. If enabled, bytes written to the caster are also re-emitted
+            on the node's output for downstream processing.</dd>
+
+        <dt>Username / Password <span class="property-type">credential</span></dt>
+        <dd>Caster credentials. Stored encrypted by Node-RED.</dd>
+
+        <dt>X / Y / Z <span class="property-type">number</span></dt>
+        <dd>Optional ECEF coordinate triple. If set (i.e. not all zero) the underlying
+            client generates and periodically sends a NMEA <code>GGA</code> sentence to
+            the caster — required by some VRS / network-RTK services.</dd>
+
+        <dt>Interval <span class="property-type">number (ms)</span></dt>
+        <dd>Period between <code>GGA</code> emissions when X/Y/Z are configured.</dd>
+    </dl>
+
     <h3>Inputs</h3>
-    <p>Content is directly passed to the ntrip server.</p>
-    
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">Buffer | string</span></dt>
+        <dd>Written verbatim to the caster (upload mode). In download mode the input
+            is typically only used to refresh the position via the form below.</dd>
+
+        <dt>payload <span class="property-type">number[]</span></dt>
+        <dd>An array <code>[x, y, z]</code> is interpreted as a coordinate update and
+            forwarded to <code>client.setXYZ()</code> rather than being written to the
+            caster. Useful for streaming position fixes into the GGA emitter.</dd>
+    </dl>
+
     <h3>Outputs</h3>
-    <p>Messages received from the ntrip server.</p>
-    <p><code>msg.payload</code></p>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">Buffer</span></dt>
+        <dd>Bytes received from the caster. In download mode this is the correction
+            stream (RTCM). In upload mode with <i>Pass through data</i> enabled, written
+            bytes are also re-emitted here.</dd>
+    </dl>
+
+    <h3>Status</h3>
+    <p>The node shows <code>connecting…</code> until the caster acknowledges the
+       handshake with <code>ICY 200 OK</code>. After that it shows the running
+       <code>Rx</code> / <code>Tx</code> counters. A red badge indicates a rejected
+       connection, a missing mountpoint, or a write failure.</p>
+
+    <h3>Details</h3>
+    <p>The first <code>ICY 200 OK</code>, <code>ICY 406</code>, or
+       <code>SOURCETABLE 200 OK</code> reply is consumed by the node to set its
+       status; any RTCM bytes that arrive in the same TCP segment as the
+       <code>ICY 200 OK</code> reply are forwarded on the output.</p>
 </script>
 
 
@@ -186,18 +251,52 @@
 </script>
 
 <script type="text/x-red" data-help-name="RtcmDecoder">
-    <p>A node that decodes RTCM messages.</p>
+    <p>Decodes binary RTCM (Radio Technical Commission for Maritime Services)
+       correction frames using the <code>@gnss/rtcm</code> library. One input
+       message may contain a single frame or several concatenated frames; each
+       decoded frame is emitted as its own output message.</p>
+    <p>The node keeps an internal buffer so frames that straddle TCP packet
+       boundaries are reassembled across consecutive input events.</p>
 
     <h3>Configuration</h3>
+    <dl class="message-properties">
+        <dt>Description <span class="property-type">string</span></dt>
+        <dd>Optional label shown in the flow editor.</dd>
+    </dl>
 
-    <p>Description of the device.</p>
-    
     <h3>Inputs</h3>
-    <p>.</p>
-    
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">Buffer</span></dt>
+        <dd>Raw RTCM bytes, typically produced by the upstream <i>NTRIP Client</i>
+            node. Strings are accepted but converted via <code>Buffer.from</code>.</dd>
+    </dl>
+
     <h3>Outputs</h3>
-    <p>.</p>
-    <p><code>msg.payload</code></p>
+    <p>Two outputs: successfully decoded frames go to the first; decode failures go to the second.</p>
+    <ol class="node-ports">
+        <li>Decoded
+            <dl class="message-properties">
+                <dt>payload.rtcm <span class="property-type">number</span></dt>
+                <dd>The RTCM message type identifier (e.g. <code>1005</code>, <code>1077</code>).</dd>
+                <dt>payload.messageType <span class="property-type">string</span></dt>
+                <dd>The constructor name of the decoded message (e.g. <code>1005</code> → <code>Stationary</code>).</dd>
+                <dt>payload.message <span class="property-type">object</span></dt>
+                <dd>The decoded message object with all fields.</dd>
+                <dt>payload.input <span class="property-type">Buffer</span></dt>
+                <dd>The bytes consumed for this frame.</dd>
+            </dl>
+        </li>
+        <li>Error
+            <dl class="message-properties">
+                <dt>payload.error <span class="property-type">Error</span></dt>
+                <dd>The exception thrown by the decoder.</dd>
+                <dt>payload.input <span class="property-type">Buffer</span></dt>
+                <dd>The remaining buffer at the point of failure.</dd>
+                <dt>payload.inputString <span class="property-type">string</span></dt>
+                <dd>A debug string representation of the buffer.</dd>
+            </dl>
+        </li>
+    </ol>
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->
@@ -231,18 +330,52 @@
 </script>
 
 <script type="text/x-red" data-help-name="NmeaDecoder">
-    <p>A node that decodes NMEA messages.</p>
+    <p>Decodes NMEA 0183 sentences (<code>GGA</code>, <code>RMC</code>,
+       <code>GSV</code>, …) using the <code>@gnss/nmea</code> library. A single
+       input message may contain several <code>\r\n</code>-delimited sentences;
+       each is decoded individually and emitted as its own output message.</p>
 
     <h3>Configuration</h3>
+    <dl class="message-properties">
+        <dt>Description <span class="property-type">string</span></dt>
+        <dd>Optional label shown in the flow editor.</dd>
+    </dl>
 
-    <p>Description of the device.</p>
-    
     <h3>Inputs</h3>
-    <p>.</p>
-    
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">string | Buffer</span></dt>
+        <dd>A NMEA sentence or a chunk containing several sentences. Buffers are
+            decoded as UTF-8.</dd>
+        <dt>payload.nmeaMessage <span class="property-type">string | Buffer</span></dt>
+        <dd>Alternative location for the input. If <code>msg.payload</code> is an
+            object with an <code>nmeaMessage</code> property, that value is used
+            instead of <code>msg.payload</code> itself.</dd>
+    </dl>
+
     <h3>Outputs</h3>
-    <p>.</p>
-    <p><code>msg.payload</code></p>
+    <p>Two outputs: successfully decoded sentences go to the first; decode failures go to the second.</p>
+    <ol class="node-ports">
+        <li>Decoded
+            <dl class="message-properties">
+                <dt>payload.messageType <span class="property-type">string</span></dt>
+                <dd>Sentence type in upper case, e.g. <code>GGA</code>, <code>RMC</code>, <code>GSV</code>.</dd>
+                <dt>payload.nmeaMessage <span class="property-type">object</span></dt>
+                <dd>The decoded sentence object with all fields.</dd>
+                <dt>payload.input <span class="property-type">string</span></dt>
+                <dd>The raw sentence as it was parsed.</dd>
+            </dl>
+        </li>
+        <li>Error
+            <dl class="message-properties">
+                <dt>payload.error <span class="property-type">Error | string</span></dt>
+                <dd>The exception or reason for the decode failure.</dd>
+                <dt>payload.input <span class="property-type">string</span></dt>
+                <dd>The sentence that failed to decode.</dd>
+                <dt>payload.inputString <span class="property-type">string</span></dt>
+                <dd>String representation of the input for logging.</dd>
+            </dl>
+        </li>
+    </ol>
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->
@@ -276,16 +409,59 @@
 </script>
 
 <script type="text/x-red" data-help-name="NmeaEncoder">
-    <p>A node that encodes NMEA messages.</p>
+    <p>Encodes a NMEA sentence object back to its textual form using the
+       <code>@gnss/nmea</code> library. The inverse of the <i>NMEA Decoder</i>
+       node — useful for round-tripping or for emitting handcrafted sentences
+       (e.g. a <code>GGA</code> fix into an NTRIP uploader).</p>
 
     <h3>Configuration</h3>
+    <dl class="message-properties">
+        <dt>Description <span class="property-type">string</span></dt>
+        <dd>Optional label shown in the flow editor.</dd>
+    </dl>
 
-    <p>Description of the device.</p>
-    
     <h3>Inputs</h3>
-    <p>.</p>
-    
+    <dl class="message-properties">
+        <dt>payload.messageType <span class="property-type">string</span></dt>
+        <dd>Sentence type, e.g. <code>GGA</code>, <code>RMC</code>, <code>VTG</code>,
+            <code>GSV</code>, <code>ZDA</code>. Case-insensitive. Supported types:
+            <code>DTM</code>, <code>GBS</code>, <code>GGA</code>, <code>GLL</code>,
+            <code>GNS</code>, <code>GRS</code>, <code>GSA</code>, <code>GST</code>,
+            <code>GSV</code>, <code>RMC</code>, <code>THS</code>, <code>TXT</code>,
+            <code>VHW</code>, <code>VLW</code>, <code>VPW</code>, <code>VTG</code>,
+            <code>ZDA</code>, plus <code>OBJECT</code> for the generic
+            <code>NmeaMessageUnknown</code> form.</dd>
+        <dt>payload.nmeaMessage <span class="property-type">object | NmeaMessage</span></dt>
+        <dd>The sentence content. Either a plain field object that matches the
+            target sentence schema, or an already-constructed <code>NmeaMessage</code>
+            instance (which is forwarded as-is to <code>NmeaTransport.encode</code>).</dd>
+    </dl>
+
     <h3>Outputs</h3>
-    <p>.</p>
-    <p><code>msg.payload</code></p>
+    <p>Two outputs: successfully encoded sentences go to the first; failures go to the second.</p>
+    <ol class="node-ports">
+        <li>Encoded
+            <dl class="message-properties">
+                <dt>payload.nmeaMessage <span class="property-type">string</span></dt>
+                <dd>The encoded NMEA sentence (including <code>$</code> prefix and
+                    checksum).</dd>
+                <dt>payload.messageType <span class="property-type">string</span></dt>
+                <dd>The sentence type, echoed back as it was supplied.</dd>
+                <dt>payload.input <span class="property-type">object</span></dt>
+                <dd>The original input object.</dd>
+            </dl>
+        </li>
+        <li>Error
+            <dl class="message-properties">
+                <dt>payload.error <span class="property-type">Error | string</span></dt>
+                <dd>The exception or reason for the failure. Unknown
+                    <code>messageType</code> values, missing input fields, and
+                    encoder errors all surface here.</dd>
+                <dt>payload.input <span class="property-type">any</span></dt>
+                <dd>The offending input.</dd>
+                <dt>payload.inputString <span class="property-type">string</span></dt>
+                <dd>String representation of the input for logging.</dd>
+            </dl>
+        </li>
+    </ol>
 </script>

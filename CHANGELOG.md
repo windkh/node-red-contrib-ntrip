@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.2.6]
+### Fixed regressions introduced in 0.2.5
+- RTCM and NMEA decoders no longer call `node.error()` on decode failures. Decode failures still go to the second (error) output, but they no longer flood the Node-RED `[error]` log when a binary stream is intentionally piped through the "wrong" decoder (e.g. RTCM bytes through the NMEA decoder — the demo flow ships with this wiring).
+- NMEA decoder error output now preserves the original payload on `input` (a `Buffer` if a `Buffer` was supplied) and exposes the utf8 string form as `inputString`, matching pre-0.2.5 behavior.
+
+### Documentation
+- Completed the per-node help text in the Node-RED info sidebar for all four nodes (`NtripClient`, `RtcmDecoder`, `NmeaDecoder`, `NmeaEncoder`) — configuration parameters, input/output shapes, status legend.
+- README updated: Requirements section (Node.js >= 18), corrected NMEA decoder output schema (`nmeaMessage`, not `message`), new NMEA Encoder section with the full list of supported `messageType` values, a "Notes on usage" section covering the common gotchas (two-output design, coordinate gating, dynamic `setXYZ` injection, pass-through interleaving, plaintext transport), and a number of typo fixes.
+
 ## [0.2.5]
 ### Fixed NTRIP client node
 - Unsupported `mode` no longer crashes the node with `client is undefined`; it now logs an error and stops cleanly.

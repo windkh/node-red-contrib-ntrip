@@ -50,7 +50,6 @@ module.exports = function (RED) {
                             }
                         };
                         node.send([null, errMsg]);
-                        node.error(ex, msg);
                         node.invalidMessagesReceived++;
                         buffer = Buffer.alloc(0);
                     }
