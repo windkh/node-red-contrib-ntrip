@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.2.4]
+### Fixed NMEA encoder node
+- Restored `NmeaMessage` instance passthrough (the `instanceof` check was previously inspecting `input.prototype` and always evaluated to false).
+- Replaced unguarded property access with a payload validation guard so missing `nmeaMessage`/`messageType` is routed to the error output instead of throwing.
+- Fixed `ReferenceError` in the catch and invalid-input branches that referenced an out-of-scope `input` variable.
+- Unknown `messageType` values are now routed to the error output instead of silently emitting `nmeaMessage: undefined` on the success output.
+- `case 'Object'` renamed to `case 'OBJECT'` (the preceding `toUpperCase()` made the original case unreachable).
+- Status badge now turns red when a message fails to encode.
+- `messageType` is coerced to a string before `toUpperCase()` to tolerate non-string inputs.
+
 ## [0.2.3]
 ### Added NMEA encoder node - [#13](https://github.com/windkh/node-red-contrib-ntrip/issues/13)
 

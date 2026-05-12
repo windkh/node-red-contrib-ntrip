@@ -1,16 +1,16 @@
 module.exports = function (RED) {
     'use strict';
 
-    const { 
-        NmeaTransport, 
+    const {
+        NmeaTransport,
         NmeaMessageUnknown,
         NmeaMessage,
         NmeaMessageDtm,
         NmeaMessageGbs,
         NmeaMessageGga,
         NmeaMessageGll,
-        NmeaMessageGns, 
-        NmeaMessageGrs, 
+        NmeaMessageGns,
+        NmeaMessageGrs,
         NmeaMessageGsa,
         NmeaMessageGst,
         NmeaMessageGsv,
@@ -30,24 +30,57 @@ module.exports = function (RED) {
         node.nmeaMessagesReceived = 0;
         node.invalidMessagesReceived = 0;
 
+        function updateStatus(ok) {
+            node.status({
+                fill: ok ? 'green' : 'red',
+                shape: 'ring',
+                text: 'NMEA: ' + node.nmeaMessagesReceived + ' Invalid: ' + node.invalidMessagesReceived,
+            });
+        }
+
+        function safeToString(value) {
+            if (value === undefined || value === null) {
+                return '';
+            }
+            try {
+                return String(value);
+            } catch (e) {
+                return '';
+            }
+        }
+
         this.on('input', function (msg) {
 
-            let input = msg.payload.nmeaMessage;
-            let isNmeaMessage = input.prototype instanceof NmeaMessage; 
-            let messageType = msg.payload.messageType;
-            messageType = messageType.toUpperCase();
-                   
-            try
-            {
-                let message;
+            let payload = msg.payload;
+
+            if (payload == null ||
+                payload.nmeaMessage == null ||
+                payload.messageType == null) {
+                let errMsg = {
+                    payload : {
+                        error : 'Invalid input. Expected payload with nmeaMessage and messageType properties.',
+                        input : payload,
+                        inputString : safeToString(payload)
+                    }
+                };
+                node.send([null, errMsg]);
+                node.invalidMessagesReceived++;
+                updateStatus(false);
+                return;
+            }
+
+            let input = payload.nmeaMessage;
+
+            try {
+                let messageType = String(payload.messageType).toUpperCase();
+
                 let nmeaMessage;
-                if(isNmeaMessage){
-                    nmeaMessage = input; // is already a NmeaMessage
+                if (input instanceof NmeaMessage) {
+                    nmeaMessage = input;
                 }
                 else {
-                    
                     switch (messageType) {
-                        case 'Object':
+                        case 'OBJECT':
                             nmeaMessage = NmeaMessageUnknown.construct(input);
                             break;
                         case 'DTM':
@@ -102,43 +135,36 @@ module.exports = function (RED) {
                             nmeaMessage = NmeaMessageZda.construct(input);
                             break;
                         default:
-                            // message could not be converted.
-                            break;
+                            throw new Error('Unsupported NMEA message type: ' + messageType);
                     }
                 }
 
-                if (nmeaMessage !== undefined) {
-                    message = NmeaTransport.encode(nmeaMessage); 
-                }
-                
-                let msg = {
+                let message = NmeaTransport.encode(nmeaMessage);
+
+                let outMsg = {
                     payload : {
-                        nmeaMessage : message,   
+                        nmeaMessage : message,
+                        messageType : messageType,
                         input : input
                     },
                 };
 
-                node.send([msg, null]);
+                node.send([outMsg, null]);
                 node.nmeaMessagesReceived++;
+                updateStatus(true);
             }
-            catch(ex)
-            {
-                let msg = {
+            catch(ex) {
+                let errMsg = {
                     payload : {
                         error : ex,
                         input : input,
-                        inputString : input.toString()
+                        inputString : safeToString(input)
                     }
                 };
-                node.send([null, msg]);
+                node.send([null, errMsg]);
                 node.invalidMessagesReceived++;
+                updateStatus(false);
             }
-
-            node.status({
-                fill: 'green',
-                    shape: 'ring',
-                    text: 'NMEA: ' + node.nmeaMessagesReceived + ' Invalid: ' + node.invalidMessagesReceived,
-                });
         });
 
         this.on('close', function(done) {
