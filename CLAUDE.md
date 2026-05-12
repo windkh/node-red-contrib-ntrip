@@ -8,11 +8,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-This package has no build step, no lint config, and no test suite. CI only runs `npm ci` and `npm run build --if-present` (see [.github/workflows/node.js.yml](.github/workflows/node.js.yml)) — the `npm test` step is intentionally commented out.
+This package has no build step and no lint config. The test suite uses Mocha + `node-red-node-test-helper`:
+
+```bash
+npm test                                  # run all specs
+npx mocha test/nmea-decoder.spec.js       # run one file
+npx mocha test/**/*.spec.js -g 'regression'  # run only regression tests
+```
+
+CI runs `npm ci`, `npm run build --if-present`, and `npm test` across Node 18/20/22 (see [.github/workflows/node.js.yml](.github/workflows/node.js.yml)).
 
 To exercise changes manually, install this directory into a local Node-RED:
 
-```
+```bash
 cd <node-red userDir, e.g. ~/.node-red>
 npm install <path-to-this-repo>
 ```
@@ -34,6 +42,22 @@ Node responsibilities:
 - **RtcmDecoder** ([ntrip/nodes/rtcm-decoder-node.js](ntrip/nodes/rtcm-decoder-node.js)) — loops `RtcmTransport.decode(buffer)` (from `@gnss/rtcm`), slicing the buffer by the returned `length` until empty, emitting one message per decoded RTCM frame. Two outputs: `[ok, error]`.
 - **NmeaDecoder** ([ntrip/nodes/nmea-decoder-node.js](ntrip/nodes/nmea-decoder-node.js)) — decodes via `NmeaTransport.decode` from `@gnss/nmea`. Accepts either a Buffer or a string, and either `msg.payload` directly or `msg.payload.nmeaMessage`. Two outputs: `[ok, error]`.
 - **NmeaEncoder** ([ntrip/nodes/nmea-encoder-node.js](ntrip/nodes/nmea-encoder-node.js)) — symmetric inverse, with a large `switch (messageType)` that maps NMEA sentence types (`GGA`, `RMC`, `GSV`, ...) to the corresponding `NmeaMessage*.construct(...)` factory before calling `NmeaTransport.encode`. When adding support for a new NMEA sentence type, add both the import at the top and the matching `case` in the switch.
+
+## Tests
+
+Specs live in [test/](test/) — one file per node. Each uses `node-red-node-test-helper` to load the registration file [ntrip/99-ntrip.js](ntrip/99-ntrip.js), wires the node under test to two `helper` sink nodes (one per output port), and asserts on `msg.payload` shape.
+
+Two patterns to reuse when adding tests:
+
+- **`regression:` tag in the test name** — for any spec that locks in a previously-shipped bug. Future maintainers can run `mocha -g regression` to verify the fix is still in place.
+- **`node.error` spy** — replace `n1.error` with a wrapper that flips a boolean, then assert the boolean stayed false. Used to prevent regressing the "decoder floods the Node-RED error log when fed mismatched binary" bug.
+
+Known-good test fixtures embedded in the specs:
+
+- NMEA: `$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47`, `$GPGLL,4916.45,N,12311.12,W,225444,A,*1D`
+- RTCM: a real 25-byte type 1005 frame as hex `D300133ED7D30202980EDEEF34B4BD62AC0941986F33360B98`
+
+NTRIP client integration tests are not yet written; the recommended approach is a fake TCP server via `net.createServer` that returns `"ICY 200 OK\r\n\r\n" + rtcmBytes` to exercise the handshake-state machine.
 
 ## Conventions worth knowing
 
