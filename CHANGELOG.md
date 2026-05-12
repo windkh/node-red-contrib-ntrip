@@ -1,6 +1,39 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.2.5]
+### Fixed NTRIP client node
+- Unsupported `mode` no longer crashes the node with `client is undefined`; it now logs an error and stops cleanly.
+- Handshake detection (`ICY 200 OK`, `ICY 406`, `SOURCETABLE 200 OK`) is now only checked while the connection is not yet established, and any RTCM bytes that arrive in the same TCP segment as the `ICY 200 OK` reply are now forwarded instead of dropped.
+- Coordinate guard changed from `x && y && z` to `not all zero`, so coordinates on an axis (e.g. equator) are no longer silently dropped. Non-finite values are rejected.
+- Separate Rx/Tx counters; handshake replies no longer inflate the inbound message count.
+- `host` is validated as a non-empty trimmed string; `interval` is coerced to an integer.
+- `AggregateError` reference is now guarded by a `typeof` check.
+- `client.removeAllListeners()` is called on node close to prevent listener leaks across reconnects.
+- Status badge no longer passes raw Error objects where a string is expected.
+- Removed pointless `async` on the input handler.
+
+### Fixed RTCM decoder node
+- Frames that straddle TCP packet boundaries are now buffered across input events instead of being dropped on a decode error.
+- Added a zero-length / non-positive-length guard to prevent a potential infinite loop.
+- Decode failures now propagate to `node.error` so Catch nodes can react.
+
+### Fixed NMEA decoder node
+- A single chunk containing multiple `\r\n`-delimited NMEA sentences is now decoded sentence by sentence (previously only the first sentence was parsed).
+- Non-string / non-Buffer payloads are routed to the error output instead of crashing.
+- Decode failures now propagate to `node.error` so Catch nodes can react.
+
+### Fixed NTRIP client library wrapper
+- Rejects CR/LF in `mountpoint`, `username`, and `password` to prevent handshake header injection.
+- Fixed `'socket timeouted'` typo in timeout error message.
+
+### Fixed editor UI
+- Password field is now rendered with `type="password"` instead of `type="text"`.
+- `host` and `mountpoint` are validated as non-empty strings in the configuration dialog.
+
+### Other
+- Bumped `engines.node` from `>=7.6.0` to `>=18.0.0` to match the CI matrix and the actual runtime requirements (`AggregateError`, optional chaining, etc.).
+
 ## [0.2.4]
 ### Fixed NMEA encoder node
 - Restored `NmeaMessage` instance passthrough (the `instanceof` check was previously inspecting `input.prototype` and always evaluated to false).

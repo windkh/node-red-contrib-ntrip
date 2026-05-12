@@ -144,7 +144,7 @@ module.exports = function (RED) {
                 let outMsg = {
                     payload : {
                         nmeaMessage : message,
-                        messageType : messageType,
+                        messageType : payload.messageType,
                         input : input
                     },
                 };

@@ -6,9 +6,18 @@ const net = require('net');
 
 // Orginal class is extended to be able to send data to the caster.
 class NtripClientUploader extends NtripClient {
-    constructor(options) {  
+    constructor(options) {
         super(options);
         this.authmode = options.authmode || 'legacy';
+
+        // Reject CR/LF in user-supplied fields that are interpolated into the
+        // handshake string, to prevent header injection.
+        for (const field of ['mountpoint', 'username', 'password']) {
+            const value = this[field];
+            if (typeof value === 'string' && /[\r\n]/.test(value)) {
+                throw new Error('Invalid character in ' + field + ': CR/LF not allowed');
+            }
+        }
     }
 
     _connect() {
@@ -24,7 +33,7 @@ class NtripClientUploader extends NtripClient {
 
         // on timeout event
         this.client.on('timeout', () => {
-            this._onError('socket timeouted');
+            this._onError('socket timeout');
         });
 
         // on connect event

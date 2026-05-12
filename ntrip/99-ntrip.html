@@ -13,8 +13,8 @@
             passthrough: { value: false, required: false },
            
             port: { value: 2101, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 65535))) }},
-            host: { value:"" },
-            mountpoint: { value:"" },
+            host: { value:"", required: true, validate: function(v) { return typeof v === "string" && v.trim().length > 0; } },
+            mountpoint: { value:"", required: true, validate: function(v) { return typeof v === "string" && v.trim().length > 0; } },
             interval: { value: 1000, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 100000))) }},
             xcoordinate: { value: 0, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) )) }},
             ycoordinate: { value: 0, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) )) }},
@@ -108,7 +108,7 @@
     </div>
     <div class="form-row">
         <label for="node-input-password"><i class="fa fa-key"></i> Password</label>
-        <input type="text" id="node-input-password" placeholder="Enter the password here)">
+        <input type="password" id="node-input-password" placeholder="Enter the password here">
     </div>
     
     <hr align="middle"/>
