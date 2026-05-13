@@ -1,0 +1,65 @@
+# Release pipeline.
+#
+# Trigger: push of a version tag matching v* or V* (e.g. v0.2.7, V1.0.0).
+# Stages:
+#   1. test — runs the full lint/format/test matrix on the tagged commit.
+#   2. publish-npm — publishes the package to the npm registry.
+#   3. github-release — creates a GitHub Release with auto-generated notes.
+#
+# Requires the `NPM_TOKEN` secret to be configured in the repository.
+
+name: Release
+
+on:
+    push:
+        tags:
+            - 'v*'
+            - 'V*'
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                node-version: [18.x, 20.x, 22.x]
+        steps:
+            - uses: actions/checkout@v4
+            - name: Use Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+                  cache: 'npm'
+            - run: npm ci
+            - run: npm run lint
+            - run: npm run format:check
+            - run: npm test
+
+    publish-npm:
+        needs: test
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  registry-url: 'https://registry.npmjs.org/'
+            - run: npm ci
+            - run: npm publish
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    github-release:
+        needs: publish-npm
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ github.ref_name }}
+                  name: ${{ github.ref_name }}
+                  generate_release_notes: true

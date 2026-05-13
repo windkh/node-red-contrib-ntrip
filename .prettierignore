@@ -14,3 +14,7 @@ ntrip/99-ntrip.html
 # Re-flowing it would produce a large noisy diff.
 *.md
 doc/
+
+# Editor / agent local state — not checked in
+.claude/
+.vscode/

@@ -1,0 +1,23 @@
+version: 2
+updates:
+    - package-ecosystem: 'npm'
+      directory: '/'
+      schedule:
+          interval: 'weekly'
+      open-pull-requests-limit: 5
+      # The following packages are transitive devDependencies pulled in by
+      # `node-red` / `node-red-node-test-helper`. They have known advisories
+      # but no patched version is currently resolvable, so Dependabot's
+      # security-update PRs fail noisily on every retry. Since these packages
+      # are dev-only (not reachable from the published runtime tree of
+      # @gnss/nmea, @gnss/rtcm, ntrip-client), the advisories don't affect
+      # end users. Remove the ignore once upstream ships a fixed version.
+      ignore:
+          - dependency-name: 'picomatch'
+          - dependency-name: 'ip-address'
+          - dependency-name: 'serialize-javascript'
+
+    - package-ecosystem: 'github-actions'
+      directory: '/'
+      schedule:
+          interval: 'monthly'
