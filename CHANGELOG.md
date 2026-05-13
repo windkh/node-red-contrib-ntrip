@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.2.7]
+### Internal — tooling, tests, docs (no runtime changes)
+- Added a mocha test suite (14 specs across `NmeaDecoder`, `NmeaEncoder`, `RtcmDecoder`) using `node-red-node-test-helper`. Regression specs are tagged so they can be re-run with `mocha -g regression`.
+- Added ESLint (flat config, `@eslint/js` recommended + `eslint-config-prettier`) and Prettier (4-space indent, single quotes, `printWidth 160`).
+- CI now runs `lint` + `format:check` + `test` across Node 18/20/22.
+- New `.github/workflows/release.yml` — push a `v*` or `V*` tag to trigger npm publish + GitHub Release with auto-generated notes.
+- New `.github/dependabot.yml` — weekly npm, monthly github-actions. Ignores `picomatch`, `ip-address`, `serialize-javascript` (transitive devDeps with no resolvable patched version yet) to stop noisy red security-update runs.
+- New architecture documentation tree under `doc/architecture/` (8 chapters + 8 ADRs).
+
 ## [0.2.6]
 ### Fixed regressions introduced in 0.2.5
 - RTCM and NMEA decoders no longer call `node.error()` on decode failures. Decode failures still go to the second (error) output, but they no longer flood the Node-RED `[error]` log when a binary stream is intentionally piped through the "wrong" decoder (e.g. RTCM bytes through the NMEA decoder — the demo flow ships with this wiring).
