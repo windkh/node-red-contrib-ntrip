@@ -155,6 +155,46 @@ msg.payload =
 };
 ```
 
+# RTCM Encoder Node
+Encodes an `RtcmMessage` instance back into a binary RTCM 3 frame using the
+`@gnss/rtcm` library. The inverse of the RTCM Decoder — useful for re-emitting
+a decoded frame after modification (e.g. rewriting a station ID before
+forwarding) or for synthesising test fixtures.
+
+The node has **two outputs**: encoded frames go to the first, failures to the
+second.
+
+This encoder does **not** construct an `RtcmMessage` from plain fields. The
+input must already be an instance — typically `msg.payload.message` from the
+RTCM Decoder.
+
+Input shape:
+```javascript
+// Direct: pass an RtcmMessage instance
+msg.payload = <RtcmMessage instance>;
+
+// Or pipe the decoder's success output straight through:
+msg.payload = {
+    rtcm,         // number — echoed back
+    messageType,  // string — echoed back
+    message,      // RtcmMessage instance — what gets encoded
+    input         // ignored
+};
+```
+
+Successful output:
+```javascript
+msg.payload =
+{
+    rtcmMessage,  // Buffer — the encoded RTCM 3 frame, ready to forward
+    rtcm,         // number — the RTCM message type identifier
+    messageType,  // string — the constructor name
+    input,        // the original input as supplied
+};
+```
+
+See also example flow [**RTCM encode flow**](examples/rtcm-encode.json).
+
 # NMEA Decoder Node
 This node accepts NMEA 0183 sentences as a string or `Buffer`. Multiple
 sentences in a single input (delimited by `\r\n`) are split and decoded

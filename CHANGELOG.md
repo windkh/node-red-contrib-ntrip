@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.2.8]
+### Added RTCM Encoder node
+- New `RtcmEncoder` node — inverse of `RtcmDecoder`. Accepts an `RtcmMessage` instance (or `msg.payload.message` from the decoder) and emits the encoded RTCM 3 frame as `msg.payload.rtcmMessage` (Buffer).
+- Designed for round-trip flows: decode, optionally mutate, then re-encode for forwarding.
+- Does not construct messages from plain fields (unlike the NMEA encoder) — there are 187 RTCM message types in `@gnss/rtcm` and per-type constructors are rarely needed for real flows.
+- New example flow `examples/rtcm-encode.json` demonstrating the decode → encode round-trip.
+- 6 new specs in `test/rtcm-encoder.spec.js` covering: round-trip from decoder instance, decoder-output-shape input, non-`RtcmMessage` rejected to error output, empty payload rejected, no `node.error` flood on bad input, fixture sanity.
+
 ## [0.2.7]
 ### Internal — tooling, tests, docs (no runtime changes)
 - Added a mocha test suite (14 specs across `NmeaDecoder`, `NmeaEncoder`, `RtcmDecoder`) using `node-red-node-test-helper`. Regression specs are tagged so they can be re-run with `mocha -g regression`.

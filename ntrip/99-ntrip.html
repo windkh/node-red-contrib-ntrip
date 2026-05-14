@@ -302,6 +302,88 @@
 <!-- ------------------------------------------------------------------------------------------ -->
 
 <script type="text/javascript">
+    RED.nodes.registerType('RtcmEncoder', {
+        category: 'GNSS',
+        color: '#C0DEED',
+        defaults: {
+			description: { value:"" },
+        },
+        inputs: 1,
+        outputs: 2,
+        icon: "function.png",
+        paletteLabel: "RTCM Encoder",
+        label: function () {
+            return this.description || "RTCM Encoder";
+        },
+        labelStyle: function() {
+            return this.description?"node_label_italic":"";
+        }
+    });
+
+</script>
+
+<script type="text/x-red" data-template-name="RtcmEncoder">
+    <div class="form-row">
+        <label for="node-input-description"><i class="fa fa-comment"></i> Description</label>
+        <input type="text" id="node-input-description" placeholder="The description of the node (optional)">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="RtcmEncoder">
+    <p>Encodes an <code>RtcmMessage</code> instance back into a binary RTCM 3
+       frame using the <code>@gnss/rtcm</code> library. The inverse of the
+       <i>RTCM Decoder</i> — useful for re-emitting a decoded frame after
+       modification (e.g. rewriting a station ID before forwarding upstream).</p>
+    <p>This encoder does not construct an <code>RtcmMessage</code> from plain
+       fields. The input must already be an instance — typically the
+       <code>msg.payload.message</code> emitted by the decoder.</p>
+
+    <h3>Configuration</h3>
+    <dl class="message-properties">
+        <dt>Description <span class="property-type">string</span></dt>
+        <dd>Optional label shown in the flow editor.</dd>
+    </dl>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">RtcmMessage</span></dt>
+        <dd>An <code>RtcmMessage</code> instance, encoded directly.</dd>
+        <dt>payload.message <span class="property-type">RtcmMessage</span></dt>
+        <dd>Round-trip shape from the <i>RTCM Decoder</i> — the encoder picks
+            up <code>msg.payload.message</code> and encodes that.</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <p>Two outputs: successfully encoded frames go to the first; failures go to the second.</p>
+    <ol class="node-ports">
+        <li>Encoded
+            <dl class="message-properties">
+                <dt>payload.rtcmMessage <span class="property-type">Buffer</span></dt>
+                <dd>The encoded RTCM 3 frame, ready to forward to an NTRIP
+                    uploader or a TCP sink.</dd>
+                <dt>payload.rtcm <span class="property-type">number</span></dt>
+                <dd>The RTCM message type identifier (e.g. <code>1005</code>).</dd>
+                <dt>payload.messageType <span class="property-type">string</span></dt>
+                <dd>The constructor name (e.g. <code>StationArp</code>).</dd>
+                <dt>payload.input <span class="property-type">any</span></dt>
+                <dd>The original input as supplied.</dd>
+            </dl>
+        </li>
+        <li>Error
+            <dl class="message-properties">
+                <dt>payload.error <span class="property-type">Error | string</span></dt>
+                <dd>The exception thrown by the encoder, or a string describing
+                    invalid input.</dd>
+                <dt>payload.input <span class="property-type">any</span></dt>
+                <dd>The offending input.</dd>
+            </dl>
+        </li>
+    </ol>
+</script>
+
+<!-- ------------------------------------------------------------------------------------------ -->
+
+<script type="text/javascript">
     RED.nodes.registerType('NmeaDecoder', {
         category: 'GNSS',
         color: '#C0DEED',

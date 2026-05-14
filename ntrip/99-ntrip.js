@@ -19,6 +19,9 @@ module.exports = function (RED) {
     const RtcmDecoderNode = require('./nodes/rtcm-decoder-node.js')(RED);
     RED.nodes.registerType('RtcmDecoder', RtcmDecoderNode);
 
+    const RtcmEncoderNode = require('./nodes/rtcm-encoder-node.js')(RED);
+    RED.nodes.registerType('RtcmEncoder', RtcmEncoderNode);
+
     const NmeaDecoderNode = require('./nodes/nmea-decoder-node.js')(RED);
     RED.nodes.registerType('NmeaDecoder', NmeaDecoderNode);
 
