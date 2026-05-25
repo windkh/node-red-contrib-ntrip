@@ -7,11 +7,23 @@ module.exports = function (RED) {
     const NtripServerMissingMountpoint = 'SOURCETABLE 200 OK';
     const HandshakePrefixBytes = 64;
 
+    function formatBps(bps) {
+        if (bps < 1000) {
+            return Math.round(bps) + ' bps';
+        }
+        if (bps < 1000000) {
+            return (bps / 1000).toFixed(1) + ' kbps';
+        }
+        return (bps / 1000000).toFixed(2) + ' Mbps';
+    }
+
     function NtripClientNode(config) {
         RED.nodes.createNode(this, config);
         let node = this;
         node.messagesReceived = 0;
         node.messagesSent = 0;
+        node.bytesAccum = 0;
+        node.currentBps = 0;
         node.passthrough = config.passthrough || false;
 
         let host = typeof config.host === 'string' ? config.host.trim() : '';
@@ -70,11 +82,21 @@ module.exports = function (RED) {
             node.status({
                 fill: 'green',
                 shape: 'ring',
-                text: 'Rx ' + node.messagesReceived + ' Tx ' + node.messagesSent,
+                text: formatBps(node.currentBps) + ' Rx ' + node.messagesReceived + ' Tx ' + node.messagesSent,
             });
         }
 
+        // Sample inbound byte counter once per second to compute the bps shown in the
+        // status badge. Counter is reset each tick — currentBps reflects the most
+        // recent 1-second window.
+        const bpsSampler = setInterval(() => {
+            node.currentBps = node.bytesAccum * 8;
+            node.bytesAccum = 0;
+            updateStatus();
+        }, 1000);
+
         client.on('data', (data) => {
+            node.bytesAccum += data.length;
             if (!connected) {
                 let prefix = data.toString('utf8', 0, Math.min(data.length, HandshakePrefixBytes));
                 if (prefix.startsWith(NtripServerOkReply)) {
@@ -163,6 +185,7 @@ module.exports = function (RED) {
         });
 
         this.on('close', function (done) {
+            clearInterval(bpsSampler);
             try {
                 client.removeAllListeners();
                 client.close();

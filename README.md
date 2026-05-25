@@ -292,8 +292,10 @@ A few things that are easy to get wrong:
   interleaved with bytes received from the caster. Downstream nodes will see
   both streams on the same wire — distinguish them with a tag in a function
   node if you need to.
-- **NTRIP Client: status badge.** `Rx N Tx M` counts inbound and outbound
-  messages separately. Handshake replies do not bump the inbound count.
+- **NTRIP Client: status badge.** `<rate> Rx N Tx M` shows the inbound data
+  rate (sampled over a 1-second window; formatted as `bps`, `kbps`, or `Mbps`)
+  followed by the inbound and outbound message counts. Handshake replies do
+  not bump the inbound count.
 - **NTRIP Client: CR/LF in credentials.** `mountpoint`, `username`, and
   `password` are interpolated into the handshake string. CR/LF in these fields
   is rejected at startup to prevent header injection.

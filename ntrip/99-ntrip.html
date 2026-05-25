@@ -209,8 +209,11 @@
     <h3>Status</h3>
     <p>The node shows <code>connecting…</code> until the caster acknowledges the
        handshake with <code>ICY 200 OK</code>. After that it shows the running
-       <code>Rx</code> / <code>Tx</code> counters. A red badge indicates a rejected
-       connection, a missing mountpoint, or a write failure.</p>
+       <code>Rx</code> / <code>Tx</code> message counters plus the inbound data
+       rate in <code>bps</code> / <code>kbps</code> / <code>Mbps</code>, sampled
+       once per second over a 1-second window
+       (e.g. <code>2.4 kbps Rx 123 Tx 4</code>). A red badge indicates a
+       rejected connection, a missing mountpoint, or a write failure.</p>
 
     <h3>Details</h3>
     <p>The first <code>ICY 200 OK</code>, <code>ICY 406</code>, or
