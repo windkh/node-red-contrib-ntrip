@@ -4,8 +4,43 @@
 const { NtripClient } = require('ntrip-client');
 const net = require('net');
 
+// Backoff schedule for reconnect attempts, in milliseconds. The upstream
+// client's default is a fixed 2000ms interval which flooded casters (and the
+// Node-RED error log) when a server was down for a while. See issue on repeated
+// error output during outages. The last entry acts as a cap for further retries.
+const RECONNECT_BACKOFF_MS = [1000, 2000, 5000, 10000];
+
+// Extends the upstream client with an exponential backoff on reconnect.
+// The schedule advances on each failed reconnect and resets to the first
+// entry as soon as the caster completes the handshake (`ICY 200 OK`).
+class NtripClientWithBackoff extends NtripClient {
+    constructor(options) {
+        super(options);
+        this._backoffIndex = 0;
+        this.reconnectInterval = RECONNECT_BACKOFF_MS[0];
+    }
+
+    _onData(data) {
+        const wasReady = this.isReady;
+        super._onData(data);
+        // Reset the backoff schedule the moment the handshake completes —
+        // subsequent connection failures start over at the first entry.
+        if (!wasReady && this.isReady) {
+            this._backoffIndex = 0;
+            this.reconnectInterval = RECONNECT_BACKOFF_MS[0];
+        }
+    }
+
+    async _reconnect() {
+        const step = Math.min(this._backoffIndex, RECONNECT_BACKOFF_MS.length - 1);
+        this.reconnectInterval = RECONNECT_BACKOFF_MS[step];
+        this._backoffIndex++;
+        return super._reconnect();
+    }
+}
+
 // Orginal class is extended to be able to send data to the caster.
-class NtripClientUploader extends NtripClient {
+class NtripClientUploader extends NtripClientWithBackoff {
     constructor(options) {
         super(options);
         this.authmode = options.authmode || 'legacy';
@@ -98,7 +133,7 @@ class NtripClientUploader extends NtripClient {
 }
 
 function createDownloader(options) {
-    return new NtripClient(options);
+    return new NtripClientWithBackoff(options);
 }
 
 function createUploader(options) {

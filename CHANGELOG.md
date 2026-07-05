@@ -1,7 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.2.10]
+### NtripClient
+- Reconnect attempts now use an exponential-ish backoff schedule (`1 s`, `2 s`, `5 s`, `10 s`, then capped at `10 s`) instead of the upstream library's fixed `2 s` interval. The schedule resets to `1 s` the moment the caster completes the `ICY 200 OK` handshake, so a brief outage restarts from the short end and a caster that stays down is no longer hammered.
+
 ### Documentation
 - Added `examples/watchdog.json` — an example flow that alerts (via a built-in `trigger` node) when the NTRIP correction stream stops delivering data for more than 60 seconds. Closes [#4](https://github.com/windkh/node-red-contrib-ntrip/issues/4).
 

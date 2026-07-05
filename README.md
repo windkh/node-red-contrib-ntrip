@@ -299,6 +299,11 @@ A few things that are easy to get wrong:
 - **NTRIP Client: CR/LF in credentials.** `mountpoint`, `username`, and
   `password` are interpolated into the handshake string. CR/LF in these fields
   is rejected at startup to prevent header injection.
+- **NTRIP Client: reconnect backoff.** When the socket to the caster drops the
+  client waits `1 s`, then `2 s`, `5 s`, `10 s` before each successive retry
+  (capped at `10 s`). The schedule resets to `1 s` as soon as the caster
+  completes the `ICY 200 OK` handshake again — so a brief outage restarts at
+  the low end, and a caster that stays down doesn't get hammered.
 - **NMEA Encoder input shape.** The encoder expects `msg.payload` to be an
   object with `messageType` and `nmeaMessage` properties — not a NMEA string.
   To re-encode the output of the NMEA Decoder you can pipe it straight in;
