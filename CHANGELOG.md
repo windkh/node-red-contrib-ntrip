@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Documentation
+- `examples/watchdog.json` now emits a `RECOVERED` message on the first data frame that arrives after a stall, in addition to the existing `STALLED` notification. Per-frame messages are still suppressed — you only see the two transitions.
+
 ## [0.2.10]
 ### NtripClient
 - Reconnect attempts now use an exponential-ish backoff schedule (`1 s`, `2 s`, `5 s`, `10 s`, then capped at `10 s`) instead of the upstream library's fixed `2 s` interval. The schedule resets to `1 s` the moment the caster completes the `ICY 200 OK` handshake, so a brief outage restarts from the short end and a caster that stays down is no longer hammered.

@@ -355,9 +355,11 @@ NTRIP casters occasionally stop emitting data without closing the TCP socket
 — the NtripClient node stays "connected" but no new frames arrive, and any
 downstream rover eventually drops out of RTK-fixed mode without an obvious
 cause. This example wires the NtripClient output into a built-in `trigger`
-node configured to fire an alert message after 60 seconds of silence
-(configurable via the trigger's Duration field). Every incoming frame resets
-the timer, so the alert only fires when the stream is genuinely stalled.
+node configured to fire after 60 seconds of silence (configurable via the
+trigger's Duration field). A small `function` node then acts as a state
+tracker: it emits a **`STALLED`** notification when the trigger fires and a
+**`RECOVERED`** notification on the first data frame that arrives after a
+stall. Per-frame messages are suppressed — you only see the two transitions.
 See also example flow [**Watchdog flow**](examples/watchdog.json)  (closes [#4](https://github.com/windkh/node-red-contrib-ntrip/issues/4))
 
 # License
