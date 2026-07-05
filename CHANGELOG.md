@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Documentation
+- Added `examples/watchdog.json` — an example flow that alerts (via a built-in `trigger` node) when the NTRIP correction stream stops delivering data for more than 60 seconds. Closes [#4](https://github.com/windkh/node-red-contrib-ntrip/issues/4).
+
 ## [0.2.9]
 ### NtripClient
 - Status badge now shows the inbound data rate alongside the Rx/Tx message counters (e.g. `2.4 kbps Rx 123 Tx 4`). The rate is sampled once per second and formatted as `bps`, `kbps`, or `Mbps` depending on magnitude.

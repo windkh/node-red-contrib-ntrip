@@ -345,6 +345,16 @@ a local demo version of SNIP by creating a raw TCP input stream.
 (SNIP can be found here https://www.use-snip.com)
 See also example flow [**Upload flow**](examples/upload.json)
 
+## Detect a stalled correction stream
+NTRIP casters occasionally stop emitting data without closing the TCP socket
+— the NtripClient node stays "connected" but no new frames arrive, and any
+downstream rover eventually drops out of RTK-fixed mode without an obvious
+cause. This example wires the NtripClient output into a built-in `trigger`
+node configured to fire an alert message after 60 seconds of silence
+(configurable via the trigger's Duration field). Every incoming frame resets
+the timer, so the alert only fires when the stream is genuinely stalled.
+See also example flow [**Watchdog flow**](examples/watchdog.json)  (closes [#4](https://github.com/windkh/node-red-contrib-ntrip/issues/4))
+
 # License
 
 Author: Karl-Heinz Wind
