@@ -1,6 +1,18 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.2.9]
+### NtripClient
+- Status badge now shows the inbound data rate alongside the Rx/Tx message counters (e.g. `2.4 kbps Rx 123 Tx 4`). The rate is sampled once per second and formatted as `bps`, `kbps`, or `Mbps` depending on magnitude.
+
+### Internal — dependency bumps (dev tree, no runtime changes)
+- `node-red` 4.1.11 → 5.0.1 (via the sigstore/node-red bundle).
+- `eslint` 10.4.1 → 10.6.0.
+- `prettier` 3.8.3 → 3.9.3.
+- `mocha` 11.7.5 → 11.7.6.
+- `globals` 17.6.0 → 17.7.0.
+- `actions/checkout` v6 → v7 in the CI + release workflows.
+
 ## [0.2.8]
 ### Added RTCM Encoder node
 - New `RtcmEncoder` node — inverse of `RtcmDecoder`. Accepts an `RtcmMessage` instance (or `msg.payload.message` from the decoder) and emits the encoded RTCM 3 frame as `msg.payload.rtcmMessage` (Buffer).
