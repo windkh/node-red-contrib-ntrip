@@ -9,7 +9,7 @@
         }
     },
     "engines": {
-        "node": ">=18.0.0"
+        "node": ">=20.0.0"
     },
     "keywords": [
         "node-red",
@@ -31,11 +31,15 @@
     "author": "Karl-Heinz Wind",
     "license": "MIT",
     "scripts": {
-        "test": "mocha test/**/*.spec.js --timeout 5000",
+        "test": "node --test",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
-        "format:check": "prettier --check ."
+        "format:check": "prettier --check .",
+        "coverage": "c8 node --test",
+        "coverage:check": "c8 --check-coverage node --test",
+        "standards:audit": "nrstd audit",
+        "standards:sync": "nrstd sync"
     },
     "dependencies": {
         "@gnss/nmea": "^0.1.2",
@@ -44,13 +48,13 @@
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
-        "chai": "^4.5.0",
+        "c8": "^10.0.0",
         "eslint": "^10.3.0",
         "eslint-config-prettier": "^10.1.8",
         "globals": "^17.6.0",
-        "mocha": "^11.7.5",
         "node-red": "^5.0.1",
         "node-red-node-test-helper": "^0.3.6",
+        "node-red-standards": "github:windkh/node-red-standards",
         "prettier": "^3.8.3"
     }
 }

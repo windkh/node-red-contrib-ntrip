@@ -1,7 +1,8 @@
 'use strict';
+const { describe, it, before, after, afterEach } = require('node:test');
+const assert = require('node:assert');
 
 const helper = require('node-red-node-test-helper');
-const { expect } = require('chai');
 const { NmeaTransport } = require('@gnss/nmea');
 const ntripModule = require('../ntrip/99-ntrip.js');
 
@@ -30,9 +31,9 @@ describe('NmeaEncoder', function () {
                 const instance = NmeaTransport.decode(GGA);
                 ok.on('input', (msg) => {
                     try {
-                        expect(msg.payload.nmeaMessage).to.be.a('string');
-                        expect(msg.payload.nmeaMessage).to.match(/^\$.+\*[0-9A-Fa-f]{2}\r?\n?$/);
-                        expect(msg.payload.nmeaMessage).to.include('GGA');
+                        assert.strictEqual(typeof msg.payload.nmeaMessage, 'string');
+                        assert.match(msg.payload.nmeaMessage, /^\$.+\*[0-9A-Fa-f]{2}\r?\n?$/);
+                        assert.ok(msg.payload.nmeaMessage.includes('GGA'));
                         resolve();
                     } catch (e) {
                         reject(e);
@@ -54,8 +55,8 @@ describe('NmeaEncoder', function () {
                 ok.on('input', () => reject(new Error('unexpected success output')));
                 err.on('input', (msg) => {
                     try {
-                        expect(msg.payload.error).to.exist;
-                        expect(String(msg.payload.error).toLowerCase()).to.include('unsupported');
+                        assert.ok(msg.payload.error !== undefined && msg.payload.error !== null);
+                        assert.ok(String(msg.payload.error).toLowerCase().includes('unsupported'));
                         resolve();
                     } catch (e) {
                         reject(e);
@@ -73,7 +74,7 @@ describe('NmeaEncoder', function () {
                 const err = helper.getNode('err');
                 err.on('input', (msg) => {
                     try {
-                        expect(msg.payload.error).to.exist;
+                        assert.ok(msg.payload.error !== undefined && msg.payload.error !== null);
                         resolve();
                     } catch (e) {
                         reject(e);
@@ -91,7 +92,7 @@ describe('NmeaEncoder', function () {
                 const err = helper.getNode('err');
                 err.on('input', (msg) => {
                     try {
-                        expect(msg.payload.error).to.exist;
+                        assert.ok(msg.payload.error !== undefined && msg.payload.error !== null);
                         resolve();
                     } catch (e) {
                         reject(e);

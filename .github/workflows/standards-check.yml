@@ -1,0 +1,20 @@
+# Enforces the shared standard. Tool-neutral, no AI. Fails CI if this repo drifts.
+name: Standards check
+
+on:
+    push:
+        branches: [master, main]
+    pull_request:
+
+jobs:
+    standards:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20.x
+            # Public standards repo: works as-is. Private: provide a PAT with repo read access, e.g.
+            #   env:
+            #     NODE_AUTH_TOKEN / configure git credential for github.com
+            - run: npx --yes github:windkh/node-red-standards audit

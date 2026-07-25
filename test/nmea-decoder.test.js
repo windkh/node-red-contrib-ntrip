@@ -1,119 +1,128 @@
 'use strict';
+const { describe, it, before, after, afterEach } = require('node:test');
+const assert = require('node:assert');
 
 const helper = require('node-red-node-test-helper');
-const { expect } = require('chai');
-const { RtcmTransport, RtcmMessage } = require('@gnss/rtcm');
 const ntripModule = require('../ntrip/99-ntrip.js');
 
 helper.init(require.resolve('node-red'));
 
-// A real RTCM 3 message type 1005 (Stationary RTK Reference Station ARP).
-const RTCM_1005 = Buffer.from('D300133ED7D30202980EDEEF34B4BD62AC0941986F33360B98', 'hex');
+const GGA = '$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47';
+const GLL = '$GPGLL,4916.45,N,12311.12,W,225444,A,*1D';
 
 function flow() {
     return [
-        { id: 'n1', type: 'RtcmEncoder', wires: [['ok'], ['err']] },
+        { id: 'n1', type: 'NmeaDecoder', wires: [['ok'], ['err']] },
         { id: 'ok', type: 'helper' },
         { id: 'err', type: 'helper' },
     ];
 }
 
-describe('RtcmEncoder', function () {
+describe('NmeaDecoder', function () {
     before(() => helper.startServer());
     after(() => helper.stopServer());
     afterEach(() => helper.unload());
 
-    it('encodes an RtcmMessage instance round-tripped from the decoder', function () {
+    it('decodes a valid GGA sentence on the success output', function () {
         return new Promise((resolve, reject) => {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
                 const ok = helper.getNode('ok');
-                const [instance] = RtcmTransport.decode(RTCM_1005);
                 ok.on('input', (msg) => {
                     try {
-                        expect(msg.payload.rtcm).to.equal(1005);
-                        expect(msg.payload.messageType).to.be.a('string');
-                        expect(Buffer.isBuffer(msg.payload.rtcmMessage)).to.equal(true);
-                        expect(msg.payload.rtcmMessage).to.deep.equal(RTCM_1005);
+                        assert.strictEqual(msg.payload.messageType, 'GGA');
+                        assert.ok(Object.prototype.hasOwnProperty.call(msg.payload.nmeaMessage, 'latitude'));
+                        assert.strictEqual(msg.payload.input, GGA);
                         resolve();
                     } catch (e) {
                         reject(e);
                     }
                 });
-                n1.receive({ payload: instance });
+                n1.receive({ payload: GGA });
             });
         });
     });
 
-    it('accepts the decoder output shape (msg.payload.message)', function () {
+    it('splits a multi-sentence chunk into separate output messages', function () {
         return new Promise((resolve, reject) => {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
                 const ok = helper.getNode('ok');
-                const [instance, length] = RtcmTransport.decode(RTCM_1005);
+                const types = [];
+                ok.on('input', (msg) => {
+                    types.push(msg.payload.messageType);
+                    if (types.length === 2) {
+                        try {
+                            assert.deepStrictEqual(types, ['GGA', 'GLL']);
+                            resolve();
+                        } catch (e) {
+                            reject(e);
+                        }
+                    }
+                });
+                n1.receive({ payload: GGA + '\r\n' + GLL + '\r\n' });
+            });
+        });
+    });
+
+    it('accepts a Buffer payload and decodes it as UTF-8', function () {
+        return new Promise((resolve, reject) => {
+            helper.load(ntripModule, flow(), () => {
+                const n1 = helper.getNode('n1');
+                const ok = helper.getNode('ok');
                 ok.on('input', (msg) => {
                     try {
-                        expect(msg.payload.rtcm).to.equal(1005);
-                        expect(Buffer.isBuffer(msg.payload.rtcmMessage)).to.equal(true);
-                        expect(msg.payload.rtcmMessage.length).to.equal(length);
+                        assert.strictEqual(msg.payload.messageType, 'GGA');
                         resolve();
                     } catch (e) {
                         reject(e);
                     }
                 });
-                // Mimic the RtcmDecoder's success payload shape.
-                n1.receive({
-                    payload: {
-                        rtcm: instance.messageType,
-                        messageType: 'StationArp',
-                        message: instance,
-                        input: RTCM_1005,
-                    },
-                });
+                n1.receive({ payload: Buffer.from(GGA, 'utf8') });
             });
         });
     });
 
-    it('routes a non-RtcmMessage payload to the error output', function () {
+    it('reads payload.nmeaMessage when payload is an object', function () {
         return new Promise((resolve, reject) => {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
                 const ok = helper.getNode('ok');
-                const err = helper.getNode('err');
-                ok.on('input', () => reject(new Error('unexpected success output')));
-                err.on('input', (msg) => {
+                ok.on('input', (msg) => {
                     try {
-                        expect(msg.payload.error).to.be.a('string');
-                        expect(msg.payload.error.toLowerCase()).to.include('invalid');
+                        assert.strictEqual(msg.payload.messageType, 'GGA');
                         resolve();
                     } catch (e) {
                         reject(e);
                     }
                 });
-                n1.receive({ payload: { foo: 'bar' } });
+                n1.receive({ payload: { nmeaMessage: GGA } });
             });
         });
     });
 
-    it('routes empty payload to the error output', function () {
+    it('error output preserves Buffer input as `input`, utf8 as `inputString`', function () {
         return new Promise((resolve, reject) => {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
                 const err = helper.getNode('err');
+                const garbage = Buffer.from([0xd3, 0x00, 0x13, 0x3e, 0xd0, 0x00]);
                 err.on('input', (msg) => {
                     try {
-                        expect(msg.payload.error).to.exist;
+                        assert.strictEqual(Buffer.isBuffer(msg.payload.input), true);
+                        assert.deepStrictEqual(msg.payload.input, garbage);
+                        assert.strictEqual(typeof msg.payload.inputString, 'string');
                         resolve();
                     } catch (e) {
                         reject(e);
                     }
                 });
-                n1.receive({ payload: null });
+                n1.receive({ payload: garbage });
             });
         });
     });
 
-    it('does not call node.error on decode-shape failure (regression: log flood)', function () {
+    it('does not call node.error on decode failure (regression: log flood)', function () {
         return new Promise((resolve, reject) => {
             helper.load(ntripModule, flow(), () => {
                 const n1 = helper.getNode('n1');
@@ -123,10 +132,10 @@ describe('RtcmEncoder', function () {
                     errorCalled = true;
                     return originalError(...args);
                 };
-                n1.receive({ payload: 'not-an-rtcm-message' });
+                n1.receive({ payload: Buffer.from([0xd3, 0x00, 0x13, 0x3e]) });
                 setTimeout(() => {
                     try {
-                        expect(errorCalled).to.equal(false);
+                        assert.strictEqual(errorCalled, false);
                         resolve();
                     } catch (e) {
                         reject(e);
@@ -134,11 +143,5 @@ describe('RtcmEncoder', function () {
                 }, 50);
             });
         });
-    });
-
-    // Sanity check: RtcmMessage is exported and the test fixture decodes to an instance.
-    it('test fixture sanity: decoded 1005 frame is an RtcmMessage instance', function () {
-        const [instance] = RtcmTransport.decode(RTCM_1005);
-        expect(instance).to.be.instanceOf(RtcmMessage);
     });
 });

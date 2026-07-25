@@ -1,6 +1,6 @@
-# Release pipeline.
+# Publish pipeline.
 #
-# Trigger: push of a version tag matching v* or V* (e.g. v0.2.7, V1.0.0).
+# Trigger: push of a version tag matching v* or V* (e.g. v0.2.11, V1.0.0).
 # Stages:
 #   1. test — runs the full lint/format/test matrix on the tagged commit.
 #   2. publish-npm — publishes the package to the npm registry.
@@ -8,7 +8,7 @@
 #
 # Requires the `NPM_TOKEN` secret to be configured in the repository.
 
-name: Release
+name: Publish to npm
 
 on:
     push:
@@ -21,7 +21,7 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                node-version: [18.x, 20.x, 22.x]
+                node-version: [20.x, 22.x]
         steps:
             - uses: actions/checkout@v7
             - name: Use Node.js ${{ matrix.node-version }}

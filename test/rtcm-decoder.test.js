@@ -1,7 +1,8 @@
 'use strict';
+const { describe, it, before, after, afterEach } = require('node:test');
+const assert = require('node:assert');
 
 const helper = require('node-red-node-test-helper');
-const { expect } = require('chai');
 const ntripModule = require('../ntrip/99-ntrip.js');
 
 helper.init(require.resolve('node-red'));
@@ -30,10 +31,10 @@ describe('RtcmDecoder', function () {
                 const ok = helper.getNode('ok');
                 ok.on('input', (msg) => {
                     try {
-                        expect(msg.payload.rtcm).to.equal(1005);
-                        expect(msg.payload.messageType).to.be.a('string');
-                        expect(msg.payload.message).to.be.an('object');
-                        expect(Buffer.isBuffer(msg.payload.input)).to.equal(true);
+                        assert.strictEqual(msg.payload.rtcm, 1005);
+                        assert.strictEqual(typeof msg.payload.messageType, 'string');
+                        assert.strictEqual(typeof msg.payload.message, 'object');
+                        assert.strictEqual(Buffer.isBuffer(msg.payload.input), true);
                         resolve();
                     } catch (e) {
                         reject(e);
@@ -69,7 +70,7 @@ describe('RtcmDecoder', function () {
                     if (received) return;
                     received = true;
                     try {
-                        expect(msg.payload.rtcm).to.equal(1005);
+                        assert.strictEqual(msg.payload.rtcm, 1005);
                         resolve();
                     } catch (e) {
                         reject(e);
@@ -103,8 +104,8 @@ describe('RtcmDecoder', function () {
                 n1.receive({ payload: big });
                 setTimeout(() => {
                     try {
-                        expect(errEmitted).to.equal(true);
-                        expect(errorCalled).to.equal(false);
+                        assert.strictEqual(errEmitted, true);
+                        assert.strictEqual(errorCalled, false);
                         resolve();
                     } catch (e) {
                         reject(e);
