@@ -37,7 +37,9 @@
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "coverage": "c8 node --test",
-        "coverage:check": "c8 --check-coverage node --test"
+        "coverage:check": "c8 --check-coverage node --test",
+        "standards:audit": "nrstd audit",
+        "standards:sync": "nrstd sync"
     },
     "dependencies": {
         "@gnss/nmea": "^0.1.2",
@@ -52,6 +54,7 @@
         "globals": "^17.6.0",
         "node-red": "^5.0.1",
         "node-red-node-test-helper": "^0.3.6",
+        "node-red-standards": "https://codeload.github.com/windkh/node-red-standards/tar.gz/refs/heads/main",
         "prettier": "^3.8.3"
     }
 }
