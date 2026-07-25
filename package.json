@@ -18,6 +18,12 @@
         "gnss",
         "mmea"
     ],
+    "files": [
+        "ntrip/",
+        "examples/",
+        "images/",
+        "CHANGELOG.md"
+    ],
     "repository": {
         "type": "git",
         "url": "git+https://github.com/windkh/node-red-contrib-ntrip.git"
