@@ -54,7 +54,7 @@
         "globals": "^17.6.0",
         "node-red": "^5.0.1",
         "node-red-node-test-helper": "^0.3.6",
-        "node-red-standards": "github:windkh/node-red-standards",
+        "node-red-standards": "git+https://github.com/windkh/node-red-standards.git",
         "prettier": "^3.8.3"
     }
 }

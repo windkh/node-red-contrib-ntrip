@@ -17,4 +17,4 @@ jobs:
             # Public standards repo: works as-is. Private: provide a PAT with repo read access, e.g.
             #   env:
             #     NODE_AUTH_TOKEN / configure git credential for github.com
-            - run: npx --yes github:windkh/node-red-standards audit
+            - run: npx --yes git+https://github.com/windkh/node-red-standards.git audit
