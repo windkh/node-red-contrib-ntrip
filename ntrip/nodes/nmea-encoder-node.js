@@ -39,14 +39,15 @@ module.exports = function (RED) {
         }
 
         function safeToString(value) {
-            if (value === undefined || value === null) {
-                return '';
+            let result = '';
+            if (value !== undefined && value !== null) {
+                try {
+                    result = String(value);
+                } catch {
+                    result = '';
+                }
             }
-            try {
-                return String(value);
-            } catch {
-                return '';
-            }
+            return result;
         }
 
         this.on('input', function (msg) {
@@ -63,102 +64,101 @@ module.exports = function (RED) {
                 node.send([null, errMsg]);
                 node.invalidMessagesReceived++;
                 updateStatus(false);
-                return;
-            }
+            } else {
+                let input = payload.nmeaMessage;
 
-            let input = payload.nmeaMessage;
+                try {
+                    let messageType = String(payload.messageType).toUpperCase();
 
-            try {
-                let messageType = String(payload.messageType).toUpperCase();
-
-                let nmeaMessage;
-                if (input instanceof NmeaMessage) {
-                    nmeaMessage = input;
-                } else {
-                    switch (messageType) {
-                        case 'OBJECT':
-                            nmeaMessage = NmeaMessageUnknown.construct(input);
-                            break;
-                        case 'DTM':
-                            nmeaMessage = NmeaMessageDtm.construct(input);
-                            break;
-                        case 'GBS':
-                            nmeaMessage = NmeaMessageGbs.construct(input);
-                            break;
-                        case 'GGA':
-                            nmeaMessage = NmeaMessageGga.construct(input);
-                            break;
-                        case 'GLL':
-                            nmeaMessage = NmeaMessageGll.construct(input);
-                            break;
-                        case 'GNS':
-                            nmeaMessage = NmeaMessageGns.construct(input);
-                            break;
-                        case 'GRS':
-                            nmeaMessage = NmeaMessageGrs.construct(input);
-                            break;
-                        case 'GSA':
-                            nmeaMessage = NmeaMessageGsa.construct(input);
-                            break;
-                        case 'GST':
-                            nmeaMessage = NmeaMessageGst.construct(input);
-                            break;
-                        case 'GSV':
-                            nmeaMessage = NmeaMessageGsv.construct(input);
-                            break;
-                        case 'RMC':
-                            nmeaMessage = NmeaMessageRmc.construct(input);
-                            break;
-                        case 'THS':
-                            nmeaMessage = NmeaMessageThs.construct(input);
-                            break;
-                        case 'TXT':
-                            nmeaMessage = NmeaMessageTxt.construct(input);
-                            break;
-                        case 'VHW':
-                            nmeaMessage = NmeaMessageVhw.construct(input);
-                            break;
-                        case 'VLW':
-                            nmeaMessage = NmeaMessageVlw.construct(input);
-                            break;
-                        case 'VPW':
-                            nmeaMessage = NmeaMessageVpw.construct(input);
-                            break;
-                        case 'VTG':
-                            nmeaMessage = NmeaMessageVtg.construct(input);
-                            break;
-                        case 'ZDA':
-                            nmeaMessage = NmeaMessageZda.construct(input);
-                            break;
-                        default:
-                            throw new Error('Unsupported NMEA message type: ' + messageType);
+                    let nmeaMessage;
+                    if (input instanceof NmeaMessage) {
+                        nmeaMessage = input;
+                    } else {
+                        switch (messageType) {
+                            case 'OBJECT':
+                                nmeaMessage = NmeaMessageUnknown.construct(input);
+                                break;
+                            case 'DTM':
+                                nmeaMessage = NmeaMessageDtm.construct(input);
+                                break;
+                            case 'GBS':
+                                nmeaMessage = NmeaMessageGbs.construct(input);
+                                break;
+                            case 'GGA':
+                                nmeaMessage = NmeaMessageGga.construct(input);
+                                break;
+                            case 'GLL':
+                                nmeaMessage = NmeaMessageGll.construct(input);
+                                break;
+                            case 'GNS':
+                                nmeaMessage = NmeaMessageGns.construct(input);
+                                break;
+                            case 'GRS':
+                                nmeaMessage = NmeaMessageGrs.construct(input);
+                                break;
+                            case 'GSA':
+                                nmeaMessage = NmeaMessageGsa.construct(input);
+                                break;
+                            case 'GST':
+                                nmeaMessage = NmeaMessageGst.construct(input);
+                                break;
+                            case 'GSV':
+                                nmeaMessage = NmeaMessageGsv.construct(input);
+                                break;
+                            case 'RMC':
+                                nmeaMessage = NmeaMessageRmc.construct(input);
+                                break;
+                            case 'THS':
+                                nmeaMessage = NmeaMessageThs.construct(input);
+                                break;
+                            case 'TXT':
+                                nmeaMessage = NmeaMessageTxt.construct(input);
+                                break;
+                            case 'VHW':
+                                nmeaMessage = NmeaMessageVhw.construct(input);
+                                break;
+                            case 'VLW':
+                                nmeaMessage = NmeaMessageVlw.construct(input);
+                                break;
+                            case 'VPW':
+                                nmeaMessage = NmeaMessageVpw.construct(input);
+                                break;
+                            case 'VTG':
+                                nmeaMessage = NmeaMessageVtg.construct(input);
+                                break;
+                            case 'ZDA':
+                                nmeaMessage = NmeaMessageZda.construct(input);
+                                break;
+                            default:
+                                throw new Error('Unsupported NMEA message type: ' + messageType);
+                        }
                     }
+
+                    let message = NmeaTransport.encode(nmeaMessage);
+
+                    let outMsg = {
+                        payload: {
+                            nmeaMessage: message,
+                            messageType: payload.messageType,
+                            input: input,
+                        },
+                    };
+
+                    node.send([outMsg, null]);
+                    node.nmeaMessagesReceived++;
+                    updateStatus(true);
+                } catch (ex) {
+                    let errMsg = {
+                        payload: {
+                            error: ex,
+                            input: input,
+                            inputString: safeToString(input),
+                        },
+                    };
+                    node.send([null, errMsg]);
+                    node.invalidMessagesReceived++;
+                    updateStatus(false);
                 }
-
-                let message = NmeaTransport.encode(nmeaMessage);
-
-                let outMsg = {
-                    payload: {
-                        nmeaMessage: message,
-                        messageType: payload.messageType,
-                        input: input,
-                    },
-                };
-
-                node.send([outMsg, null]);
-                node.nmeaMessagesReceived++;
-                updateStatus(true);
-            } catch (ex) {
-                let errMsg = {
-                    payload: {
-                        error: ex,
-                        input: input,
-                        inputString: safeToString(input),
-                    },
-                };
-                node.send([null, errMsg]);
-                node.invalidMessagesReceived++;
-                updateStatus(false);
             }
         });
 

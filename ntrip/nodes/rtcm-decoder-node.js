@@ -23,59 +23,62 @@ module.exports = function (RED) {
         }
 
         this.on('input', function (msg) {
-            if (msg.payload === undefined || msg.payload === null) {
-                return;
-            }
+            if (msg.payload !== undefined && msg.payload !== null) {
+                let chunk = Buffer.isBuffer(msg.payload) ? msg.payload : Buffer.from(msg.payload);
+                let buffer = node.pendingBuffer.length > 0 ? Buffer.concat([node.pendingBuffer, chunk]) : chunk;
 
-            let chunk = Buffer.isBuffer(msg.payload) ? msg.payload : Buffer.from(msg.payload);
-            let buffer = node.pendingBuffer.length > 0 ? Buffer.concat([node.pendingBuffer, chunk]) : chunk;
-
-            while (buffer.length > 0) {
-                let message;
-                let length;
-                try {
-                    [message, length] = RtcmTransport.decode(buffer);
-                } catch (ex) {
-                    // Likely a partial frame at the tail of this chunk — keep the bytes
-                    // for the next input event. If we've accumulated too much without a
-                    // successful decode, drop and emit an error.
-                    if (buffer.length > MaxPendingBytes) {
-                        let errMsg = {
-                            payload: {
-                                error: ex,
-                                input: buffer,
-                                inputString: buffer.toString(),
-                            },
-                        };
-                        node.send([null, errMsg]);
-                        node.invalidMessagesReceived++;
-                        buffer = Buffer.alloc(0);
+                let keepLooping = true;
+                while (keepLooping && buffer.length > 0) {
+                    let message;
+                    let length;
+                    let decoded = true;
+                    try {
+                        [message, length] = RtcmTransport.decode(buffer);
+                    } catch (ex) {
+                        decoded = false;
+                        // Likely a partial frame at the tail of this chunk — keep the bytes
+                        // for the next input event. If we've accumulated too much without a
+                        // successful decode, drop and emit an error.
+                        if (buffer.length > MaxPendingBytes) {
+                            let errMsg = {
+                                payload: {
+                                    error: ex,
+                                    input: buffer,
+                                    inputString: buffer.toString(),
+                                },
+                            };
+                            node.send([null, errMsg]);
+                            node.invalidMessagesReceived++;
+                            buffer = Buffer.alloc(0);
+                        }
+                        keepLooping = false;
                     }
-                    break;
+
+                    if (decoded) {
+                        if (!Number.isInteger(length) || length <= 0 || length > buffer.length) {
+                            // Defensive — guarantees forward progress even if the decoder ever
+                            // returns a non-positive length.
+                            keepLooping = false;
+                        } else {
+                            let messageType = message.constructor.name.replace('RtcmMessage', '');
+                            let outMsg = {
+                                payload: {
+                                    rtcm: message.messageType,
+                                    messageType: messageType,
+                                    message: message,
+                                    input: buffer.slice(0, length),
+                                },
+                            };
+                            node.send([outMsg, null]);
+                            node.rtcmMessagesReceived++;
+                            buffer = buffer.slice(length);
+                        }
+                    }
                 }
 
-                if (!Number.isInteger(length) || length <= 0 || length > buffer.length) {
-                    // Defensive — guarantees forward progress even if the decoder ever
-                    // returns a non-positive length.
-                    break;
-                }
-
-                let messageType = message.constructor.name.replace('RtcmMessage', '');
-                let outMsg = {
-                    payload: {
-                        rtcm: message.messageType,
-                        messageType: messageType,
-                        message: message,
-                        input: buffer.slice(0, length),
-                    },
-                };
-                node.send([outMsg, null]);
-                node.rtcmMessagesReceived++;
-                buffer = buffer.slice(length);
+                node.pendingBuffer = buffer;
+                updateStatus();
             }
-
-            node.pendingBuffer = buffer;
-            updateStatus();
         });
 
         this.on('close', function (done) {

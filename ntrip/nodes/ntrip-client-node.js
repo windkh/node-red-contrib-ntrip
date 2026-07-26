@@ -8,13 +8,15 @@ module.exports = function (RED) {
     const HandshakePrefixBytes = 64;
 
     function formatBps(bps) {
+        let text;
         if (bps < 1000) {
-            return Math.round(bps) + ' bps';
+            text = Math.round(bps) + ' bps';
+        } else if (bps < 1000000) {
+            text = (bps / 1000).toFixed(1) + ' kbps';
+        } else {
+            text = (bps / 1000000).toFixed(2) + ' Mbps';
         }
-        if (bps < 1000000) {
-            return (bps / 1000).toFixed(1) + ' kbps';
-        }
-        return (bps / 1000000).toFixed(2) + ' Mbps';
+        return text;
     }
 
     function NtripClientNode(config) {
@@ -33,168 +35,171 @@ module.exports = function (RED) {
         let authmode = config.authmode || 'legacy';
         let interval = parseInt(config.interval, 10) || 1000;
 
+        let client = null;
+
         if (host === '') {
             node.status({ fill: 'red', shape: 'ring', text: 'Host not configured' });
-            return;
-        }
-
-        let options = {
-            host: host,
-            port: port,
-            mountpoint: mountpoint,
-            username: node.credentials.username,
-            password: node.credentials.password,
-            interval: interval,
-        };
-
-        // Depending on the caster the clients need to provide the location via GGA sentence.
-        let x = parseFloat(config.xcoordinate);
-        let y = parseFloat(config.ycoordinate);
-        let z = parseFloat(config.zcoordinate);
-
-        if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z) && !(x === 0 && y === 0 && z === 0)) {
-            options.xyz = [x, y, z];
-        }
-
-        let client;
-        if (mode === 'download') {
-            client = NtripClient.createDownloader(options);
-        } else if (mode === 'upload') {
-            options.authmode = authmode;
-            try {
-                client = NtripClient.createUploader(options);
-            } catch (error) {
-                node.status({ fill: 'red', shape: 'ring', text: String(error.message || error) });
-                node.error('Failed to create uploader: ' + (error.message || error));
-                return;
-            }
         } else {
-            node.status({ fill: 'red', shape: 'ring', text: 'Unsupported mode: ' + mode });
-            node.error('Mode not supported: ' + mode);
-            return;
-        }
+            let options = {
+                host: host,
+                port: port,
+                mountpoint: mountpoint,
+                username: node.credentials.username,
+                password: node.credentials.password,
+                interval: interval,
+            };
 
-        // Track handshake state so we only intercept control replies during the handshake,
-        // not on every subsequent data packet. Reset on socket close so reconnects work.
-        let connected = false;
+            // Depending on the caster the clients need to provide the location via GGA sentence.
+            let x = parseFloat(config.xcoordinate);
+            let y = parseFloat(config.ycoordinate);
+            let z = parseFloat(config.zcoordinate);
 
-        function updateStatus() {
-            node.status({
-                fill: 'green',
-                shape: 'ring',
-                text: formatBps(node.currentBps) + ' Rx ' + node.messagesReceived + ' Tx ' + node.messagesSent,
-            });
-        }
-
-        // Sample inbound byte counter once per second to compute the bps shown in the
-        // status badge. Counter is reset each tick — currentBps reflects the most
-        // recent 1-second window.
-        const bpsSampler = setInterval(() => {
-            node.currentBps = node.bytesAccum * 8;
-            node.bytesAccum = 0;
-            updateStatus();
-        }, 1000);
-
-        client.on('data', (data) => {
-            node.bytesAccum += data.length;
-            if (!connected) {
-                let prefix = data.toString('utf8', 0, Math.min(data.length, HandshakePrefixBytes));
-                if (prefix.startsWith(NtripServerOkReply)) {
-                    connected = true;
-                    node.status({ fill: 'green', shape: 'ring', text: 'NTRIP server connected.' });
-                    // Forward any RTCM bytes that arrived in the same TCP segment as the handshake reply.
-                    let headerEnd = data.indexOf('\r\n\r\n');
-                    if (headerEnd !== -1 && headerEnd + 4 < data.length) {
-                        node.messagesReceived++;
-                        node.send({ payload: data.slice(headerEnd + 4) });
-                        updateStatus();
-                    }
-                    return;
-                }
-                if (prefix.startsWith(NtripServerNotOkReply)) {
-                    node.status({ fill: 'red', shape: 'ring', text: 'NTRIP server rejected connection.' });
-                    node.error('Server rejected connect: ' + prefix);
-                    return;
-                }
-                if (prefix.startsWith(NtripServerMissingMountpoint)) {
-                    node.status({ fill: 'red', shape: 'ring', text: 'No mountpoint ' + mountpoint });
-                    node.error('No mountpoint: ' + prefix);
-                    return;
-                }
-                // Unexpected: data arrived before any recognised handshake reply.
-                // Treat as connected so we don't drop further frames.
-                connected = true;
+            if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z) && !(x === 0 && y === 0 && z === 0)) {
+                options.xyz = [x, y, z];
             }
 
-            node.messagesReceived++;
-            node.send({ payload: data });
-            updateStatus();
-        });
-
-        client.on('close', () => {
-            connected = false;
-            node.log('Closed NTRIP connection.');
-        });
-
-        client.on('error', (error) => {
-            connected = false;
-            if (typeof AggregateError !== 'undefined' && error instanceof AggregateError) {
-                error.errors.forEach((e, i) => {
-                    node.log('Error ' + (i + 1) + ': ' + e.message);
-                    node.error('Error: ' + e.message);
-                });
+            if (mode === 'download') {
+                client = NtripClient.createDownloader(options);
+            } else if (mode === 'upload') {
+                options.authmode = authmode;
+                try {
+                    client = NtripClient.createUploader(options);
+                } catch (error) {
+                    node.status({ fill: 'red', shape: 'ring', text: String(error.message || error) });
+                    node.error('Failed to create uploader: ' + (error.message || error));
+                }
             } else {
-                let text = error && error.message ? error.message : String(error);
-                node.log(text);
-                node.error('Error: ' + text);
+                node.status({ fill: 'red', shape: 'ring', text: 'Unsupported mode: ' + mode });
+                node.error('Mode not supported: ' + mode);
             }
-        });
-
-        try {
-            client.run();
-        } catch (error) {
-            node.status({ fill: 'red', shape: 'ring', text: String(error.message || error) });
-            node.error('Failed to start client: ' + (error.message || error));
-            return;
         }
 
-        node.status({ fill: 'yellow', shape: 'ring', text: 'connecting...' });
+        if (client !== null) {
+            // Track handshake state so we only intercept control replies during the handshake,
+            // not on every subsequent data packet. Reset on socket close so reconnects work.
+            let connected = false;
 
-        this.on('input', function (msg) {
-            let payload = msg.payload;
-            if (payload === undefined || payload === null) {
-                return;
+            function updateStatus() {
+                node.status({
+                    fill: 'green',
+                    shape: 'ring',
+                    text: formatBps(node.currentBps) + ' Rx ' + node.messagesReceived + ' Tx ' + node.messagesSent,
+                });
             }
 
-            try {
-                if (Array.isArray(payload)) {
-                    client.setXYZ(payload);
-                } else {
-                    client.write(payload);
-                    node.messagesSent++;
-                    if (node.passthrough) {
-                        node.send(msg);
+            // Sample inbound byte counter once per second to compute the bps shown in the
+            // status badge. Counter is reset each tick — currentBps reflects the most
+            // recent 1-second window.
+            const bpsSampler = setInterval(() => {
+                node.currentBps = node.bytesAccum * 8;
+                node.bytesAccum = 0;
+                updateStatus();
+            }, 1000);
+
+            client.on('data', (data) => {
+                node.bytesAccum += data.length;
+                let handled = false;
+                if (!connected) {
+                    let prefix = data.toString('utf8', 0, Math.min(data.length, HandshakePrefixBytes));
+                    if (prefix.startsWith(NtripServerOkReply)) {
+                        connected = true;
+                        node.status({ fill: 'green', shape: 'ring', text: 'NTRIP server connected.' });
+                        // Forward any RTCM bytes that arrived in the same TCP segment as the handshake reply.
+                        let headerEnd = data.indexOf('\r\n\r\n');
+                        if (headerEnd !== -1 && headerEnd + 4 < data.length) {
+                            node.messagesReceived++;
+                            node.send({ payload: data.slice(headerEnd + 4) });
+                            updateStatus();
+                        }
+                        handled = true;
+                    } else if (prefix.startsWith(NtripServerNotOkReply)) {
+                        node.status({ fill: 'red', shape: 'ring', text: 'NTRIP server rejected connection.' });
+                        node.error('Server rejected connect: ' + prefix);
+                        handled = true;
+                    } else if (prefix.startsWith(NtripServerMissingMountpoint)) {
+                        node.status({ fill: 'red', shape: 'ring', text: 'No mountpoint ' + mountpoint });
+                        node.error('No mountpoint: ' + prefix);
+                        handled = true;
+                    } else {
+                        // Unexpected: data arrived before any recognised handshake reply.
+                        // Treat as connected so we don't drop further frames.
+                        connected = true;
                     }
+                }
+
+                if (!handled) {
+                    node.messagesReceived++;
+                    node.send({ payload: data });
                     updateStatus();
                 }
-            } catch (error) {
-                let text = error && error.message ? error.message : String(error);
-                node.status({ fill: 'red', shape: 'ring', text: text });
-                node.error('Failed to write data: ' + text, msg);
-            }
-        });
+            });
 
-        this.on('close', function (done) {
-            clearInterval(bpsSampler);
+            client.on('close', () => {
+                connected = false;
+                node.log('Closed NTRIP connection.');
+            });
+
+            client.on('error', (error) => {
+                connected = false;
+                if (typeof AggregateError !== 'undefined' && error instanceof AggregateError) {
+                    error.errors.forEach((e, i) => {
+                        node.log('Error ' + (i + 1) + ': ' + e.message);
+                        node.error('Error: ' + e.message);
+                    });
+                } else {
+                    let text = error && error.message ? error.message : String(error);
+                    node.log(text);
+                    node.error('Error: ' + text);
+                }
+            });
+
+            let running = true;
             try {
-                client.removeAllListeners();
-                client.close();
-            } catch {
-                // ignore — node is shutting down anyway
+                client.run();
+            } catch (error) {
+                running = false;
+                node.status({ fill: 'red', shape: 'ring', text: String(error.message || error) });
+                node.error('Failed to start client: ' + (error.message || error));
             }
-            node.status({});
-            done();
-        });
+
+            if (running) {
+                node.status({ fill: 'yellow', shape: 'ring', text: 'connecting...' });
+
+                this.on('input', function (msg) {
+                    let payload = msg.payload;
+                    if (payload !== undefined && payload !== null) {
+                        try {
+                            if (Array.isArray(payload)) {
+                                client.setXYZ(payload);
+                            } else {
+                                client.write(payload);
+                                node.messagesSent++;
+                                if (node.passthrough) {
+                                    node.send(msg);
+                                }
+                                updateStatus();
+                            }
+                        } catch (error) {
+                            let text = error && error.message ? error.message : String(error);
+                            node.status({ fill: 'red', shape: 'ring', text: text });
+                            node.error('Failed to write data: ' + text, msg);
+                        }
+                    }
+                });
+
+                this.on('close', function (done) {
+                    clearInterval(bpsSampler);
+                    try {
+                        client.removeAllListeners();
+                        client.close();
+                    } catch {
+                        // ignore — node is shutting down anyway
+                    }
+                    node.status({});
+                    done();
+                });
+            }
+        }
     }
 
     return NtripClientNode;

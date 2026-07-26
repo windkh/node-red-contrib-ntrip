@@ -31,7 +31,9 @@ module.exports = function (RED) {
                 message = payload;
             } else if (payload != null && payload.message instanceof RtcmMessage) {
                 message = payload.message;
-            } else {
+            }
+
+            if (message === undefined) {
                 node.send([
                     null,
                     {
@@ -43,40 +45,39 @@ module.exports = function (RED) {
                 ]);
                 node.invalidMessagesReceived++;
                 updateStatus(false);
-                return;
-            }
+            } else {
+                try {
+                    let buffer = Buffer.alloc(MaxFrameBytes);
+                    let length = RtcmTransport.encode(message, buffer);
+                    let encoded = buffer.slice(0, length);
+                    let messageType = message.constructor.name.replace('RtcmMessage', '');
 
-            try {
-                let buffer = Buffer.alloc(MaxFrameBytes);
-                let length = RtcmTransport.encode(message, buffer);
-                let encoded = buffer.slice(0, length);
-                let messageType = message.constructor.name.replace('RtcmMessage', '');
-
-                node.send([
-                    {
-                        payload: {
-                            rtcmMessage: encoded,
-                            rtcm: message.messageType,
-                            messageType: messageType,
-                            input: payload,
+                    node.send([
+                        {
+                            payload: {
+                                rtcmMessage: encoded,
+                                rtcm: message.messageType,
+                                messageType: messageType,
+                                input: payload,
+                            },
                         },
-                    },
-                    null,
-                ]);
-                node.rtcmMessagesReceived++;
-                updateStatus(true);
-            } catch (ex) {
-                node.send([
-                    null,
-                    {
-                        payload: {
-                            error: ex,
-                            input: payload,
+                        null,
+                    ]);
+                    node.rtcmMessagesReceived++;
+                    updateStatus(true);
+                } catch (ex) {
+                    node.send([
+                        null,
+                        {
+                            payload: {
+                                error: ex,
+                                input: payload,
+                            },
                         },
-                    },
-                ]);
-                node.invalidMessagesReceived++;
-                updateStatus(false);
+                    ]);
+                    node.invalidMessagesReceived++;
+                    updateStatus(false);
+                }
             }
         });
 
