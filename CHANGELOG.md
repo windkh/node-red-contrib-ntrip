@@ -1,9 +1,17 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.2.11]
 ### Documentation
 - `examples/watchdog.json` now emits a `RECOVERED` message on the first data frame that arrives after a stall, in addition to the existing `STALLED` notification. Per-frame messages are still suppressed — you only see the two transitions.
+
+### Internal — adopted `node-red-standards` (no runtime behaviour change)
+- Migrated the test suite from `mocha` + `chai` to `node --test` + `node:assert` (still uses `node-red-node-test-helper`; specs renamed `*.spec.js` → `*.test.js`).
+- Added portable `AGENTS.md` as the tool-neutral rule source of truth; `CLAUDE.md` slimmed to a thin adapter.
+- Added `.github/workflows/standards-check.yml` — CI-side audit against `node-red-standards`.
+- Consolidated the previous tag-driven `release.yml` into `npm-publish.yml` (same behaviour, standard-conforming filename).
+- Bumped `engines.node` from `>=18.0.0` to `>=20.0.0`; CI/publish Node matrix trimmed to `20.x, 22.x` (Node 18 is EOL).
+- Refactored all node files to single-exit style — every function has exactly one `return` at its final position. Zero behavioural change; 20/20 tests still pass.
 
 ## [0.2.10]
 ### NtripClient
