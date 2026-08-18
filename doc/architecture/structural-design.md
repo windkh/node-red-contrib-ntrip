@@ -6,22 +6,28 @@
 node-red-contrib-ntrip/
 ├── ntrip/
 │   ├── 99-ntrip.js          # Node-RED registration entry point
-│   ├── 99-ntrip.html        # Editor UI for all four nodes (forms + help text)
+│   ├── 99-ntrip.html        # Editor UI for all five nodes (forms + help text)
 │   ├── nodes/
 │   │   ├── ntrip-client-node.js
 │   │   ├── rtcm-decoder-node.js
+│   │   ├── rtcm-encoder-node.js
 │   │   ├── nmea-decoder-node.js
 │   │   └── nmea-encoder-node.js
 │   └── lib/
 │       └── ntrip-client.js  # Local extension of the upstream ntrip-client package
-├── examples/                # Sample flows (ntripclient.json, sapos.json, upload.json, …)
-├── test/                    # Mocha specs (one per node, suffixed .spec.js)
+├── examples/                # Sample flows (ntripclient.json, sapos.json, upload.json,
+│                            # tcp.json, nmea-decode.json, nmea-encode.json,
+│                            # rtcm-encode.json, watchdog.json)
+├── test/                    # node:test specs (one per node, suffixed .test.js)
+├── test-helpers/            # Shared test helpers (fake-red.js, etc.) — kept outside
+│                            # test/ because `node --test` discovers every .js there.
 ├── images/                  # Screenshots referenced by README.md
 ├── doc/architecture/        # This documentation tree
+├── AGENTS.md                # Portable, tool-neutral coding standard
+├── CLAUDE.md                # Adapter — imports AGENTS.md
 ├── package.json
 ├── package-lock.json
 ├── CHANGELOG.md
-├── CLAUDE.md
 └── README.md
 ```
 
@@ -29,26 +35,23 @@ node-red-contrib-ntrip/
 
 ```
    ┌────────────────────────┐
-   │   ntrip/99-ntrip.js    │  (Node-RED entry, registerType x 4)
+   │   ntrip/99-ntrip.js    │  (Node-RED entry, registerType x 5)
    └─────────┬──────────────┘
              │ require
-   ┌─────────┴────────────────────────────────────────────────────────┐
-   ▼              ▼                  ▼                   ▼            │
- ntrip-client-  rtcm-decoder-      nmea-decoder-      nmea-encoder-   │
- node.js        node.js            node.js            node.js         │
-   │              │                  │                   │            │
-   │ require      │ require          │ require           │ require    │
-   ▼              ▼                  ▼                   ▼            │
- lib/ntrip-     @gnss/rtcm         @gnss/nmea          @gnss/nmea     │
- client.js                                                            │
-   │                                                                  │
-   │ require                                                          │
-   ▼                                                                  │
- ntrip-client  (npm package, upstream)                                │
-                                                                      │
-                                                                      ▼
-                                                       package.json reads
-                                                       version into log line
+   ┌─────────┼──────────────┬─────────────────┬───────────────────┐
+   ▼         ▼              ▼                 ▼                   ▼
+ ntrip-      rtcm-          rtcm-             nmea-               nmea-
+ client-     decoder-       encoder-          decoder-            encoder-
+ node.js     node.js        node.js           node.js             node.js
+   │           │              │                 │                   │
+   │ require   │ require      │ require         │ require           │ require
+   ▼           ▼              ▼                 ▼                   ▼
+ lib/ntrip-   @gnss/rtcm    @gnss/rtcm        @gnss/nmea          @gnss/nmea
+ client.js
+   │
+   │ require
+   ▼
+ ntrip-client  (npm package, upstream)
 ```
 
 ## File responsibilities
@@ -57,7 +60,7 @@ node-red-contrib-ntrip/
 
 | File | Responsibility |
 |------|----------------|
-| [ntrip/99-ntrip.js](../../ntrip/99-ntrip.js) | Imports each node implementation. Registers the four types with `RED.nodes.registerType`. Declares the `credentials` block for `NtripClient`. Reads the package version from `package.json` and logs it. |
+| [ntrip/99-ntrip.js](../../ntrip/99-ntrip.js) | Imports each node implementation. Registers the five types with `RED.nodes.registerType`. Declares the `credentials` block for `NtripClient`. Reads the package version from `package.json` and logs it. |
 | [ntrip/99-ntrip.html](../../ntrip/99-ntrip.html) | Per-node `registerType` call (client side), the configuration `<template>`, and the help text shown in Node-RED's info sidebar. The credentials block is duplicated here — Node-RED requires both. |
 
 ### Node implementations
@@ -66,10 +69,11 @@ node-red-contrib-ntrip/
 |------|------|--------|---------|
 | [ntrip/nodes/ntrip-client-node.js](../../ntrip/nodes/ntrip-client-node.js) | `NtripClient` | 1 | 1 (data from caster + optional pass-through of writes) |
 | [ntrip/nodes/rtcm-decoder-node.js](../../ntrip/nodes/rtcm-decoder-node.js) | `RtcmDecoder` | 1 | 2 (decoded, error) |
+| [ntrip/nodes/rtcm-encoder-node.js](../../ntrip/nodes/rtcm-encoder-node.js) | `RtcmEncoder` | 1 | 2 (encoded, error) |
 | [ntrip/nodes/nmea-decoder-node.js](../../ntrip/nodes/nmea-decoder-node.js) | `NmeaDecoder` | 1 | 2 (decoded, error) |
 | [ntrip/nodes/nmea-encoder-node.js](../../ntrip/nodes/nmea-encoder-node.js) | `NmeaEncoder` | 1 | 2 (encoded, error) |
 
-All four follow the same skeleton:
+All five follow the same skeleton:
 
 ```javascript
 module.exports = function (RED) {
@@ -91,16 +95,23 @@ module.exports = function (RED) {
 };
 ```
 
+Since v0.2.11 every function in these files follows a **single-exit** style —
+one `return` at the last statement, guarded work under `if (guard) { … }`
+rather than early-return guard clauses. See AGENTS.md § "Shared: Code style".
+
 ### Library layer
 
 [ntrip/lib/ntrip-client.js](../../ntrip/lib/ntrip-client.js) — a thin local
 adapter around the upstream `ntrip-client` npm package. Exposes two factories:
 
-- `createDownloader(options)` — returns the upstream `NtripClient` unchanged.
-- `createUploader(options)` — returns a subclass `NtripClientUploader` that
-  overrides `_connect()` to switch the handshake string by `authmode`
-  (`legacy`, `hybrid`, `ntripv1`, `ntripv2`). The constructor also rejects
-  CR/LF in `mountpoint`/`username`/`password` to prevent header injection.
+- `createDownloader(options)` — returns an `NtripClientWithBackoff` instance
+  (subclass of upstream `NtripClient` that adds the exponential reconnect
+  schedule; see [ADR-0009](adr/0009-reconnect-backoff.md)).
+- `createUploader(options)` — returns an `NtripClientUploader` (extends
+  `NtripClientWithBackoff`) that overrides `_connect()` to switch the
+  handshake string by `authmode` (`legacy`, `hybrid`, `ntripv1`, `ntripv2`).
+  The constructor also rejects CR/LF in `mountpoint`/`username`/`password`
+  to prevent header injection.
 
 The override pattern is a full replacement of the parent's `_connect`, not a
 delegation — see [ADR-0002](adr/0002-ntrip-uploader-extension.md) for the
@@ -110,9 +121,13 @@ rationale and trade-offs.
 
 ```
 ntrip-client (npm)
-  └── NtripClient            # download
-        └── NtripClientUploader (lib/ntrip-client.js)   # upload
+  └── NtripClient                              # upstream
+        └── NtripClientWithBackoff             # local: reconnect backoff
+              └── NtripClientUploader           # local: upload handshake
 ```
+
+`createDownloader` returns a `NtripClientWithBackoff` (no uploader logic),
+`createUploader` returns a `NtripClientUploader`.
 
 No other classes are defined in this package; every Node-RED node is a plain
 function passed to `registerType`, and decoder/encoder state lives on the node
@@ -135,7 +150,12 @@ instance via simple property assignment (`node.pendingBuffer`, `node.messagesRec
 - `node-red.nodes` in [package.json](../../package.json) points only at
   `ntrip/99-ntrip.js` — Node-RED loads that file, which transitively pulls in
   everything else.
-- Runtime dependencies: `@gnss/nmea`, `@gnss/rtcm`, `ntrip-client`. No transient
-  runtime dependency on Node-RED itself.
-- Dev-only dependencies: `mocha`, `chai` (CJS v4), `node-red`,
-  `node-red-node-test-helper`.
+- The `files` field limits the published tarball to `ntrip/`, `examples/`,
+  `images/`, and `CHANGELOG.md` (plus the auto-included `README.md`,
+  `LICENSE`, `package.json`). See v0.2.9 in the changelog.
+- Runtime dependencies: `@gnss/nmea`, `@gnss/rtcm`, `ntrip-client`. No
+  transient runtime dependency on Node-RED itself.
+- Dev-only dependencies: `node-red`, `node-red-node-test-helper`, `c8`,
+  `eslint` / `@eslint/js` / `eslint-config-prettier` / `globals`, `prettier`,
+  and `node-red-standards` (pinned tarball, see
+  [ADR-0010](adr/0010-node-red-standards-adoption.md)).

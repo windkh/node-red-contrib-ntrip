@@ -11,8 +11,10 @@ in the order they were accepted.
 | [0004](0004-stateful-handshake-interception.md) | Stateful handshake interception in the NtripClient | Accepted | 0.2.5 |
 | [0005](0005-rtcm-partial-frame-buffer.md) | Carry-over buffer for partial RTCM frames | Accepted | 0.2.5 |
 | [0006](0006-nmea-multi-sentence-split.md) | Multi-sentence splitting in the NMEA decoder | Accepted | 0.2.5 |
-| [0007](0007-mocha-test-helper-stack.md) | Mocha + node-red-node-test-helper for the test suite | Accepted | 0.2.6 |
+| [0007](0007-mocha-test-helper-stack.md) | Mocha + node-red-node-test-helper for the test suite | Accepted | 0.2.6 (superseded by ADR-0010 in 0.2.11) |
 | [0008](0008-coordinate-gating-sentinel.md) | `(0, 0, 0)` as the "no location" sentinel for GGA emission | Accepted | 0.2.5 |
+| [0009](0009-reconnect-backoff.md) | Exponential-schedule reconnect backoff on the NTRIP client | Accepted | 0.2.10 |
+| [0010](0010-node-red-standards-adoption.md) | Adopt `node-red-standards` as the tool-neutral rule source | Accepted | 0.2.11 |
 
 See [../architecture-decisions.md](../architecture-decisions.md) for the
 template and the criteria for when to add a new ADR.

@@ -99,6 +99,38 @@ therefore has two error paths:
   same wording. `AggregateError` instances (e.g. from happy-eyeballs DNS
   resolution failures) are expanded into one log line per inner error.
 
+## NtripClient — reconnect backoff
+
+The upstream `ntrip-client` reconnects with a fixed 2 s interval, which
+hammered a caster (and flooded the Node-RED error log) during a genuine
+outage. The local subclass walks a schedule instead:
+
+```
+   attempt N:  sleep 1 s  → connect
+   attempt N+1: sleep 2 s → connect
+   attempt N+2: sleep 5 s → connect
+   attempt N+3: sleep 10 s → connect
+   attempt N+4+: sleep 10 s (capped)
+```
+
+Reset to `1 s` fires the moment `_onData` sees `isReady` flip from `false` to
+`true` (i.e. the caster's `ICY 200 OK` handshake completes). So a brief blip
+restarts from the low end, and a caster that stays down doesn't get poked at
+1 Hz.
+
+See [ADR-0009](adr/0009-reconnect-backoff.md).
+
+## NtripClient — inbound data-rate sampling
+
+Every inbound `data` event increments `node.bytesAccum`. A 1 s `setInterval`
+snapshots that counter into `node.currentBps` (as bits per second), zeroes
+the accumulator, and refreshes the status badge. `formatBps` picks the
+appropriate unit — `bps`, `kbps`, or `Mbps` — for the displayed value.
+The interval is cleared on `close`.
+
+The status text is then `"<rate> Rx <n> Tx <m>"`, e.g.
+`"2.4 kbps Rx 123 Tx 4"`.
+
 ## RtcmDecoder — frame reassembly across input events
 
 RTCM 3 frames are variable-length and routinely cross TCP packet boundaries.
@@ -161,6 +193,24 @@ splits and decodes each independently:
 
 See [ADR-0006](adr/0006-nmea-multi-sentence-split.md).
 
+## RtcmEncoder — instance-only encoding
+
+The RTCM encoder is deliberately asymmetric with the NMEA encoder: it does
+**not** construct an `RtcmMessage` from a plain field object. There are 187
+RTCM message classes in `@gnss/rtcm`, each with per-type bit packing and CRC
+handling — a `switch (messageType)` per type would be several hundred lines
+of nearly identical boilerplate for a use case that is realistically only
+"decode → maybe mutate → re-encode". The encoder therefore accepts:
+
+- `msg.payload` as an `RtcmMessage` instance directly (passthrough)
+- `msg.payload.message` as an `RtcmMessage` instance (round-trip from the
+  decoder — the decoder's success payload has that shape)
+
+Anything else routes to the error output. `RtcmTransport.encode(message,
+buffer)` writes into a pre-allocated 1029-byte `Buffer` (RTCM 3's max frame
+size); the encoder slices out the written length and emits the resulting
+`Buffer` as `msg.payload.rtcmMessage`.
+
 ## NmeaEncoder — instance passthrough vs construction
 
 The encoder accepts two input shapes:
@@ -204,14 +254,15 @@ See [ADR-0003](adr/0003-two-output-decoder-design.md).
 
 ## Status badge convention
 
-All four nodes follow the same rule for the badge under the node in the
+All five nodes follow the same rule for the badge under the node in the
 Node-RED editor:
 
 | State | Fill | Shape | Text |
 |-------|------|-------|------|
 | starting | yellow | ring | `connecting...` (NtripClient only) |
-| running | green | ring | counters, e.g. `Rx 123 Tx 4` / `NMEA: 12 Invalid: 0` |
-| connected (NtripClient) | green | ring | `NTRIP server connected.` |
+| running (NtripClient) | green | ring | `<rate> Rx <n> Tx <m>`, e.g. `2.4 kbps Rx 123 Tx 4` |
+| running (decoder/encoder) | green | ring | counters, e.g. `RTCM: 12 Invalid: 0`, `NMEA: 12 Invalid: 0` |
+| connected (NtripClient, once) | green | ring | `NTRIP server connected.` |
 | handshake error | red | ring | `NTRIP server rejected connection.` or `No mountpoint <name>` |
 | write/decode error | red | ring | error message |
 | closed | (cleared) | — | — |
@@ -220,7 +271,18 @@ Node-RED editor:
 
 | Node | On `close` |
 |------|------------|
-| NtripClient | `client.removeAllListeners()`, then `client.close()`, clear status. |
+| NtripClient | Clear the 1 s bps sampler interval; `client.removeAllListeners()`, then `client.close()`, clear status. |
 | RtcmDecoder | Discard `pendingBuffer`, clear status. |
+| RtcmEncoder | Clear status. |
 | NmeaDecoder | Clear status. |
 | NmeaEncoder | Clear status. |
+
+## Single-exit control flow
+
+Since v0.2.11 every function in the source tree returns exactly once, at the
+last statement (see AGENTS.md § "Shared: Code style"). Guard clauses like
+`if (bad) return;` are rewritten as `if (!bad) { … }`; multi-return helpers
+like the pre-refactor `formatBps` (three `return`s) are collapsed to a
+single `let result` and a trailing `return result;`. The pattern shows up
+throughout the node input handlers and the `NtripClient` constructor's
+cascade of validation errors (host / mode / uploader-construct / client.run).

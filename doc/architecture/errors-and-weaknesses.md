@@ -41,11 +41,14 @@ labelled by status (Open / Fixed-in-vX.Y.Z / Accepted as design constraint).
 
 | ID | Description | Status |
 |----|-------------|--------|
-| L-1 | `engines.node: ">=7.6.0"` was inconsistent with code that uses `AggregateError` and the CI matrix (18/20/22) | Fixed in 0.2.5 — bumped to `>=18.0.0` |
+| L-1 | `engines.node: ">=7.6.0"` was inconsistent with code that uses `AggregateError` and the CI matrix (18/20/22) | Fixed in 0.2.5 — bumped to `>=18.0.0`, further bumped to `>=20.0.0` in 0.2.11 (Node 18 EOL) |
 | L-2 | Editor help text was stubs (`<p>.</p>`) for three of four nodes | Fixed in 0.2.6 — full `<dl class="message-properties">` blocks |
 | L-3 | Decoders/encoder kept the original input attached to every output message (memory pressure for high-rate streams) | **Open.** Cost is one Buffer reference per emission. |
 | L-4 | `'socket timeouted'` typo in the upstream socket error message | Fixed in 0.2.5 |
 | L-5 | NMEA case `'Object'` was unreachable because `messageType.toUpperCase()` ran first | Fixed in 0.2.4 |
+| L-6 | Upstream `ntrip-client` reconnected with a fixed 2 s interval → flooded casters and the Node-RED error log during outages | Fixed in 0.2.10 — `NtripClientWithBackoff` subclass walks `[1s, 2s, 5s, 10s]` (capped), resets on `ICY 200 OK` |
+| L-7 | Status badge showed only Rx/Tx counts, not throughput — invisible when a caster was silently rate-limiting or dropping | Fixed in 0.2.9 — 1 s bps sampler + `<rate> Rx N Tx M` badge |
+| L-8 | Publish tarball shipped `test/`, `doc/`, `.github/`, `eslint.config.js`, `.prettierrc.json`, `.claude/settings.json`, `CLAUDE.md` — every user paid ~⅓ extra install size | Fixed in 0.2.9 — `files` field restricts to `ntrip/`, `examples/`, `images/`, `CHANGELOG.md` |
 
 ## Open design-level constraints
 
@@ -65,7 +68,12 @@ fix would be a significant architectural change.
   `registerType` and the HTML `RED.nodes.registerType`. Drift is detectable
   only at runtime when persistence silently fails.
 - **No per-node integration tests for `NtripClient`** — the unit test stack
-  covers the three pure transformer nodes only. The client requires a fake TCP
+  covers the four pure transformer nodes only. The client requires a fake TCP
   server for meaningful testing; see [Future Improvements](future-improvements.md).
+  The `test-helpers/fake-red.js` shim added by node-red-standards is
+  intended to unblock this without pulling in the full Node-RED runtime.
 - **Editor HTML help text duplicates much of the runtime documentation** — any
   schema change to a `payload` shape needs two updates (code + help text).
+- **`node-red-standards` pinned to a codeload tarball URL by commit SHA** —
+  see [ADR-0010](adr/0010-node-red-standards-adoption.md). Trade-off:
+  reproducible builds and no EINTEGRITY drift, but SHA bumps are manual.

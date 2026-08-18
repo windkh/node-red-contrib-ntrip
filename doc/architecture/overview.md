@@ -2,17 +2,18 @@
 
 ## What this package is
 
-`node-red-contrib-ntrip` is a Node-RED contribution package that adds four
+`node-red-contrib-ntrip` is a Node-RED contribution package that adds five
 GNSS-related nodes to a Node-RED palette. The package is distributed via npm
 and consumed by users through Node-RED's "Manage palette" UI — there is no
 standalone application binary.
 
-The four nodes:
+The five nodes:
 
 | Node | Direction | Library | Purpose |
 |------|-----------|---------|---------|
-| `NtripClient` | network ↔ flow | [`ntrip-client`](https://github.com/dxhbiz/ntrip-client) (extended) | Connect to an NTRIP caster as either a *client* (download corrections) or a *server* (upload corrections to a mountpoint). |
+| `NtripClient` | network ↔ flow | [`ntrip-client`](https://github.com/dxhbiz/ntrip-client) (extended) | Connect to an NTRIP caster as either a *client* (download corrections) or a *server* (upload corrections to a mountpoint). Reconnect uses an exponential backoff (`1 s` / `2 s` / `5 s` / `10 s`, capped) that resets on `ICY 200 OK`. |
 | `RtcmDecoder` | binary → object | [`@gnss/rtcm`](https://github.com/node-ntrip/rtcm) | Decode RTCM 3 binary frames into JavaScript objects. |
+| `RtcmEncoder` | object → binary | [`@gnss/rtcm`](https://github.com/node-ntrip/rtcm) | The inverse — re-emit a binary RTCM 3 frame from a decoded `RtcmMessage` instance. |
 | `NmeaDecoder` | text → object | [`@gnss/nmea`](https://github.com/node-ntrip/nmea) | Decode NMEA 0183 ASCII sentences into JavaScript objects. |
 | `NmeaEncoder` | object → text | [`@gnss/nmea`](https://github.com/node-ntrip/nmea) | The inverse — emit a NMEA sentence string from an object. |
 
@@ -62,10 +63,10 @@ For VRS / network-RTK casters that require a position fix from the client:
 ## Runtime model
 
 - **Pure JavaScript, no build step.** Files in [ntrip/](../../ntrip/) are loaded by Node-RED at startup.
-- **Single registration entry point** — [ntrip/99-ntrip.js](../../ntrip/99-ntrip.js) `require`s the four node implementations and calls `RED.nodes.registerType` for each. See [ADR-0001](adr/0001-single-registration-file.md).
-- **Editor HTML co-located** — all four node configuration dialogs and help text live in [ntrip/99-ntrip.html](../../ntrip/99-ntrip.html).
-- **Node ≥ 18** — runtime requires `AggregateError` and modern syntax.
-- **Stateless across restarts** — node configuration is persisted by Node-RED's flow file; the nodes themselves carry only in-memory state (counters, the NTRIP socket, the RTCM pending buffer).
+- **Single registration entry point** — [ntrip/99-ntrip.js](../../ntrip/99-ntrip.js) `require`s the five node implementations and calls `RED.nodes.registerType` for each. See [ADR-0001](adr/0001-single-registration-file.md).
+- **Editor HTML co-located** — all five node configuration dialogs and help text live in [ntrip/99-ntrip.html](../../ntrip/99-ntrip.html).
+- **Node ≥ 20** — matches AGENTS.md, aligned with the current LTS baseline. Runtime uses `AggregateError` and other Node ≥ 18-only features; CI matrix is `20.x, 22.x`.
+- **Stateless across restarts** — node configuration is persisted by Node-RED's flow file; the nodes themselves carry only in-memory state (counters, the NTRIP socket, the RTCM pending buffer, the 1 s bps sampler).
 
 ## Reading order for new contributors
 

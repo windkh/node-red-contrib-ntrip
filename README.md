@@ -31,8 +31,8 @@ Or run the following command in the root directory of your Node-RED installation
     npm install node-red-contrib-ntrip --save
 
 # Requirements
-- Node.js **>= 18.0.0** (uses `AggregateError` and other recent runtime features).
-- Node-RED **>= 0.1.0**.
+- Node.js **>= 20.0.0** (matches the current LTS baseline; earlier versions are EOL).
+- Node-RED **>= 0.1.0** (runtime-only requirement; the editor UI targets modern Node-RED).
 
 # Dependencies
 This package depends on the following libraries
@@ -319,8 +319,8 @@ A few things that are easy to get wrong:
   upload mode use Basic Auth and are observable on the wire. NTRIP-over-TLS
   is not supported by this package.
 
-# Examples 
-Examples are stored in the examples folder an can be imported from within node-red's sidebar via import.
+# Examples
+Examples are stored in the examples folder and can be imported from within Node-RED's sidebar via import.
 
 ## Download data from NTRIP caster
 Consuming Data is straight forward. Connect to a NTRIP caster, select download mode and
@@ -329,8 +329,8 @@ The NMEA node is only to show that the stream can be split.
 (It is useless as RTK2Go does not send any NMEA strings)
 See also example flow [**RTK2Go flow**](examples/ntripclient.json)  
 
-## Provide XYZ dato to NTRIP caster 
-This example is the same as the RTK2Go one except for the fact that Sapos requires sending a GGA sentence 
+## Provide XYZ data to NTRIP caster
+This example is the same as the RTK2Go one except for the fact that Sapos requires sending a GGA sentence
 before transmitting RTCM sentences.
 See also example flow [**Sapos flow**](examples/sapos.json)  
 
@@ -344,7 +344,7 @@ See also example flow [**TCP flow**](examples/tcp.json)
 
 ## Upload data to NTRIP caster
 Uploading is straight forward, however authentication might be tricky.
-You need to know the mountpoint and credentials before you can initiat an upload.
+You need to know the mountpoint and credentials before you can initiate an upload.
 Not all NTRIP casters accept the same way of authentication. You can test with 
 a local demo version of SNIP by creating a raw TCP input stream.
 (SNIP can be found here https://www.use-snip.com)
