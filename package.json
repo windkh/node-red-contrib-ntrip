@@ -31,7 +31,7 @@
     "author": "Karl-Heinz Wind",
     "license": "MIT",
     "scripts": {
-        "test": "node --test --test-force-exit --test-timeout=30000 --test-concurrency=1",
+        "test": "node --test --test-timeout=30000 --test-concurrency=1",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
