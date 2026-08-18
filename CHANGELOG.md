@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.2.12]
+### Internal — dependency bumps, tooling, docs (no runtime behaviour change)
+- Pinned `node-red-standards` to a specific commit SHA (was `refs/heads/main`) to stop CI failing with EINTEGRITY whenever the standards repo advanced.
+- Bumped dev deps: `node-red` 5.0.1 → 5.0.4, `c8` 10.1.3 → 12.0.0, `globals` 17.7.0 → 17.11.0, `eslint` 10.8.0 → 10.8.1.
+- Bumped GitHub Actions: `actions/checkout` v4 → v7, `actions/setup-node` v4/v6 → v7.
+- `npm test` dropped `--test-force-exit` — a leaked handle would previously abort the process after tests completed, aborting Windows runs. A suite that exits on its own now proves it leaks no handles. (See #46.)
+- Added `test-helpers/fake-red.js` — a minimal Node-RED stand-in for testing node input handlers without spinning up the full runtime.
+- Refreshed all architecture docs against v0.2.11 (five-node coverage including `RtcmEncoder`, reconnect backoff, bps sampler, single-exit style) and added two ADRs: `0009-reconnect-backoff.md`, `0010-node-red-standards-adoption.md`.
+
 ## [0.2.11]
 ### Documentation
 - `examples/watchdog.json` now emits a `RECOVERED` message on the first data frame that arrives after a stall, in addition to the existing `STALLED` notification. Per-frame messages are still suppressed — you only see the two transitions.
