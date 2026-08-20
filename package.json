@@ -54,7 +54,24 @@
         "globals": "^17.6.0",
         "node-red": "^5.0.1",
         "node-red-node-test-helper": "^0.3.6",
-        "node-red-standards": "https://codeload.github.com/windkh/node-red-standards/tar.gz/1726fe5133771b88b9c4fd17e64413cca595992e",
+        "node-red-standards": "github:windkh/node-red-standards",
         "prettier": "^3.8.3"
+    },
+    "c8": {
+        "reporter": [
+            "text",
+            "lcov"
+        ],
+        "exclude": [
+            "test/**",
+            "test-helpers/**",
+            "examples/**",
+            "doc/**",
+            "eslint.config.js"
+        ],
+        "lines": 56,
+        "statements": 56,
+        "branches": 71,
+        "functions": 64
     }
 }
