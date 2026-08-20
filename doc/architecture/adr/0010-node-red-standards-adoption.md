@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted in 0.2.11.
+Accepted in 0.2.11 — **item 5 (pinned tarball) superseded by
+[ADR-0011](0011-unpin-node-red-standards.md) in 0.2.13**. The rest of
+the decision (AGENTS.md adoption, CLAUDE.md adapter, `node:test`
+migration, `standards-check.yml` workflow, `engines.node >=20`,
+single-exit refactor) still stands.
 
 ## Context
 
@@ -42,11 +46,14 @@ Adopt the standard. Concretely:
    Specs renamed `*.spec.js → *.test.js`.
 4. `.github/workflows/standards-check.yml` runs `npx nrstd audit` on every
    push/PR against `main`.
-5. `node-red-standards` declared as a **pinned tarball** devDependency
+5. ~~`node-red-standards` declared as a **pinned tarball** devDependency
    (`https://codeload.github.com/windkh/node-red-standards/tar.gz/<sha>`)
    so `npm ci` installs it locally and CI just invokes `npx nrstd audit`
    after install — no separate network fetch, no EINTEGRITY drift when the
-   standards repo advances.
+   standards repo advances.~~ **Superseded by [ADR-0011](0011-unpin-node-red-standards.md)** —
+   pinning turned the drift detector blind to new standards for three
+   releases. The workflow now uses the template's floating
+   `npx --yes github:windkh/node-red-standards audit`.
 6. `engines.node` bumped to `>=20.0.0`; CI matrix trimmed to `20.x, 22.x`.
 7. Source refactored to single-exit style across all node files (one
    `return` per function at the last statement).

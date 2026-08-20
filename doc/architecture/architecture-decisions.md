@@ -18,7 +18,8 @@ Related).
 | [0007](adr/0007-mocha-test-helper-stack.md) | Mocha + node-red-node-test-helper for the test suite | Superseded by [0010](adr/0010-node-red-standards-adoption.md) |
 | [0008](adr/0008-coordinate-gating-sentinel.md) | `(0, 0, 0)` as the "no location" sentinel for GGA emission | Accepted |
 | [0009](adr/0009-reconnect-backoff.md) | Exponential-schedule reconnect backoff on the NTRIP client | Accepted |
-| [0010](adr/0010-node-red-standards-adoption.md) | Adopt `node-red-standards` as the tool-neutral rule source | Accepted |
+| [0010](adr/0010-node-red-standards-adoption.md) | Adopt `node-red-standards` as the tool-neutral rule source | Accepted (item 5 superseded by [0011](adr/0011-unpin-node-red-standards.md)) |
+| [0011](adr/0011-unpin-node-red-standards.md) | Unpin `node-red-standards`, audit against the floating reference | Accepted |
 
 ## When to add a new ADR
 
